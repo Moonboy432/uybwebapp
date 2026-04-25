@@ -9,12 +9,28 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    if (username === "player" && password === "1234") {
-      localStorage.setItem("playerLoggedIn", "true");
-      navigate("/dashboard");
-    } else {
-      alert("Invalid username or password");
+  const handleLogin = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: username, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Invalid credentials");
+
+      localStorage.setItem("token", data.token);
+      console.log("Token saved:", localStorage.getItem("token"));
+
+      if (data.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -28,17 +44,27 @@ export default function Login() {
           </p>
         </Link>
       </div>
+      <div className="flex items-center gap-2 mb-6">
+        <Link to="/Home">
+          <img
+            src="/uybfclogo.png"
+            alt="Club Logo"
+            className="w-30 h-30 object-fit hover:cursor-pointer"
+          />
+          {/* <span className="font-bold text-xl">UYB FC</span> */}
+        </Link>
+      </div>
 
       {/* Login Card */}
-      <div className="bg-white p-8 rounded-xl shadow-xl w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Player Login</h2>
+      <div className="bg-blue p-8 rounded-xl shadow-xl w-96">
+        <h2 className="text-2xl font-bold mb-6 text-center">PLAYER LOGIN</h2>
 
         <input
-          type="text"
-          placeholder="Username"
+          type="email"
+          placeholder="email"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full border p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border-2 p-3 rounded-lg mb-4"
         />
 
         <input
@@ -46,7 +72,7 @@ export default function Login() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border p-3 rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border-2 p-3 rounded-lg mb-6"
         />
 
         <button

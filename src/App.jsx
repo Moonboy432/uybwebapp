@@ -7,6 +7,8 @@ import Squad from './Landing/Squad';
 import Dashboard from './Components/Dashboard';
 import Gallery from './Landing/Gallery';
 import Event from './Landing/Event';
+import AdminDashboard from './Admin/AdminDashboard';
+import { PlayerProvider } from './context/PlayerContext';
 
 
 
@@ -23,8 +25,17 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/squad" element={<Squad />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={
+          <PlayerProvider>
+            <Dashboard />
+          </PlayerProvider>
+        } />
         <Route path="/Event" element={<Event />} />
+        <Route path="/admin" element={
+          <PlayerProvider>
+            <AdminDashboard />
+          </PlayerProvider>
+        } />
       </Routes>
     </BrowserRouter>
   )

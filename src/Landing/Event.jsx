@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
-
 export default function Event() {
   return (
     <section className="min-h-screen relative bg-gradient-to-r from-blue-400 to-blue-300 text-white">
@@ -12,6 +11,13 @@ export default function Event() {
             <ArrowLeft /> Homepage
           </p>
         </Link>
+      </div>
+
+      {/* Main Message */}
+      <div className="flex items-center justify-center h-screen">
+        <h1 className="text-4xl md:text-6xl font-extrabold text-center px-4 text-yellow-300">
+          NEXT EVENT WILL BE ANNOUNCED
+        </h1>
       </div>
     </section>
   );

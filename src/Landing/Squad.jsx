@@ -7,6 +7,7 @@ import mafrex from "../assets/mafrexjr.jpg";
 import ojvictor from "../assets/ojvictor.jpg";
 import johnson from "../assets/johnson.jpg";
 import mimi from "../assets/mimi.jpg";
+import icon1 from "../assets/icon1.png";
 
 const players = [
   {
@@ -39,7 +40,7 @@ const players = [
   },
   {
     id: 5,
-    name: "BELLETI JOHNSON",
+    name: "JOHNSON",
     position: "LB",
     rating: 88,
     image: johnson,
@@ -86,7 +87,7 @@ export default function Squad() {
               </div>
 
               <div className="bg-blue-200 p-4 space-y-2">
-                <h2 className="text-lg font-semibold bg-yellow-500 rounded text-center">
+                <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-700 to-blue-400 rounded text-center">
                   {player.name}
                 </h2>
 

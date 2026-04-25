@@ -2,12 +2,12 @@ import { Link } from "react-router-dom";
 
 export default function Hero() {
   return (
-    <section className="h-screen relative bg-gradient-to-r from-blue-400 to-blue-300 text-white">
-      {/* Background Images */}
+    <section className="min-h-screen relative bg-gradient-to-r from-blue-400 to-blue-300 text-white">
+      
 
 
       {/* Overlay */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-32 flex flex-col lg:flex-row items-center gap-10">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 flex flex-col lg:flex-row items-center gap-10">
         {/* Text Content */}
         <div className="flex-1 space-y-6">
           <h1 className="text-5xl lg:text-6xl font-extrabold tracking-tight">
