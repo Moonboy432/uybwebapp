@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   X,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
@@ -16,11 +17,20 @@ export default function PlayerDashboard() {
   const { players, totalMatches } = usePlayers();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false); // ✅ new
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+  // ✅ Updated points formula
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    return p.goals * 3 + p.assists * 2 + attendance;
+    const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+    return (
+      p.goals * 3 +
+      p.assists * 2 +
+      attendance -
+      (p.yellowCards ?? 0) * 1 -
+      (p.redCards ?? 0) * 3 +
+      zeroDebtBonus
+    );
   };
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
@@ -41,9 +51,14 @@ export default function PlayerDashboard() {
       });
   }, []);
 
+  const attendance =
+    player && totalMatches > 0
+      ? Math.round((player.played / totalMatches) * 100)
+      : 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
-      {/* ✅ Full Page Leaderboard Overlay */}
+      {/* Full Page Leaderboard Overlay */}
       {showLeaderboard && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
           <div className="flex-1 overflow-y-auto p-6">
@@ -53,7 +68,7 @@ export default function PlayerDashboard() {
                 alt="Club Logo"
                 className="w-20 h-20 object-contain"
               />
-              <h2 className="text-2xl font-bold text-black  text-center">
+              <h2 className="text-2xl font-bold text-black text-center">
                 🏆 Full Leaderboard
               </h2>
             </div>
@@ -68,12 +83,9 @@ export default function PlayerDashboard() {
                     className={`flex items-center gap-4 p-4 rounded-2xl shadow-xl
                       ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
                   >
-                    {/* Rank */}
                     <span className="text-lg font-bold w-6 text-black">
                       {i + 1}
                     </span>
-
-                    {/* Avatar */}
                     {p.avatar ? (
                       <img
                         src={p.avatar}
@@ -90,16 +102,28 @@ export default function PlayerDashboard() {
                           .toUpperCase()}
                       </div>
                     )}
-
-                    {/* Name */}
                     <span className="flex-1 font-bold text-black">
                       {p.name}{" "}
                       {isMe && (
                         <span className="text-sm font-normal">(you)</span>
                       )}
                     </span>
-
-                    {/* Points */}
+                    {/* ✅ Leaderboard badges */}
+                    {p.debt === 0 && (
+                      <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full">
+                        🎁 +2
+                      </span>
+                    )}
+                    {(p.yellowCards ?? 0) > 0 && (
+                      <span className="text-xs bg-yellow-200 text-yellow-800 font-bold px-2 py-0.5 rounded-full">
+                        🟨 -{p.yellowCards}
+                      </span>
+                    )}
+                    {(p.redCards ?? 0) > 0 && (
+                      <span className="text-xs bg-red-200 text-red-800 font-bold px-2 py-0.5 rounded-full">
+                        🟥 -{(p.redCards ?? 0) * 3}
+                      </span>
+                    )}
                     <span className="font-bold text-black">{points} pts</span>
                   </div>
                 );
@@ -107,7 +131,6 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* Exit Button */}
           <div className="p-6 flex justify-center">
             <button
               onClick={() => setShowLeaderboard(false)}
@@ -143,23 +166,18 @@ export default function PlayerDashboard() {
             <X className="bg-yellow-400 rounded shadow-xl" />
           </button>
         </div>
-        <div className=" flex items-center justify-center">
-          <img
-            src="/uybfclogo.png"
-            alt="Club Logo"
-            className="w-20 h-20 object-contain"
-          />
-          <h2 className="text-2xl font-bold  hidden md:block">UYB.FC</h2>
+        <div className="flex items-center justify-center">
+          <h2 className="text-2xl font-bold hidden md:block">UYB.FC</h2>
         </div>
         <nav className="space-y-4 flex-1">
           <button
             onClick={() => {
               setShowLeaderboard(true);
               setSidebarOpen(false);
-            }} // ✅ updated
+            }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
           >
-            <Trophy size={18} /> Rank
+            <Trophy size={20} /> <p className="font-bold">Ranks</p>
           </button>
         </nav>
 
@@ -168,8 +186,8 @@ export default function PlayerDashboard() {
             onClick={() => localStorage.removeItem("token")}
             className="flex items-center gap-3 text-red-500 hover:bg-red-50 p-2 rounded-xl mt-6"
           >
-            <LogOut size={18} className="font-bold text-black shadow-xl" />
-            <span className="text-black font-bold">Logout</span>
+            <LogOut size={20} className="font-bold text-black shadow-xl" />
+            <span className="text-black font-bold">LOGOUT</span>
           </button>
         </Link>
       </aside>
@@ -210,65 +228,129 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+        {/* ✅ Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* 1. Total Points — full width, prominent */}
+          <div className="md:col-span-2 bg-yellow-400 p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
-              <span>GOALS</span>
-              <Trophy />
+              <span className="font-bold text-black text-lg">TOTAL POINTS</span>
+              <ChartNoAxesCombined className="text-black" />
             </div>
-            <p className="text-3xl font-bold">{player?.goals}</p>
+            <p className="text-5xl font-extrabold text-black">
+              {player ? Math.round(getPoints(player)) : 0}
+            </p>
+            {/* <p className="text-xs text-black/60 mt-1">
+              Goals×3 + Assists×2 + Attendance − Yellow×1 − Red×3 + Zero Debt
+              Bonus
+            </p> */}
           </div>
+
+          {/* 2. Goals & Assists */}
           <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
-            <div className="flex justify-between mb-2">
-              <span>ASSISTS</span>
-              <Users />
+            <div className="flex justify-between mb-4">
+              <span className="font-bold text-black">GOALS & ASSISTS</span>
+              <Trophy className="text-black" />
             </div>
-            <p className="text-3xl font-bold">{player?.assists}</p>
+            <div className="flex justify-around">
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-black">
+                  {player?.goals ?? 0}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">⚽ Goals</p>
+              </div>
+              <div className="w-px bg-black/20" />
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-black">
+                  {player?.assists ?? 0}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">🅰️ Assists</p>
+              </div>
+            </div>
           </div>
+
+          {/* 3. Yellow & Red Cards */}
+          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+            <div className="flex justify-between mb-4">
+              <span className="font-bold text-black">CARDS</span>
+              <span className="text-lg">🟨🟥</span>
+            </div>
+            <div className="flex justify-around">
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-yellow-500">
+                  {player?.yellowCards ?? 0}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  🟨 Yellow (-1 each)
+                </p>
+              </div>
+              <div className="w-px bg-black/20" />
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-red-500">
+                  {player?.redCards ?? 0}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">🟥 Red (-3 each)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Attendance & Zero Debt Bonus */}
+          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+            <div className="flex justify-between mb-4">
+              <span className="font-bold text-black">ATTENDANCE & BONUS</span>
+              <Calendar className="text-black" />
+            </div>
+            <div className="flex justify-around">
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-black">
+                  {attendance}%
+                </p>
+                <p className="text-xs text-gray-600 mt-1">📅 Attendance</p>
+              </div>
+              <div className="w-px bg-black/20" />
+              <div className="text-center">
+                <p
+                  className={`text-4xl font-extrabold ${player?.debt === 0 ? "text-green-600" : "text-gray-400"}`}
+                >
+                  {player?.debt === 0 ? "+2" : "0"}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">🎁 Zero Debt Bonus</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Debt */}
           <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
-              <span>DEBT</span>
-              <CreditCard />
+              <span className="font-bold text-black">DEBT</span>
+              <CreditCard className="text-black" />
             </div>
-            <p className="text-xl font-semibold">
-              {player?.debt === 0 ? "Paid" : `${player?.debt} TL`}
+            <p
+              className={`text-3xl font-extrabold ${player?.debt === 0 ? "text-green-600" : "text-red-500"}`}
+            >
+              {player?.debt === 0 ? "✓ Paid" : `${player?.debt} TL`}
             </p>
           </div>
         </div>
 
-        {/* Main Grid */}
+        {/* Club Leaderboard preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
-            <div className="flex justify-between mb-2">
-              <span>Attendance</span>
-              <Calendar />
-            </div>
-            <p className="text-3xl font-bold">
-              {player && totalMatches > 0
-                ? `${Math.round((player.played / totalMatches) * 100)}%`
-                : "0%"}
-            </p>
-          </div>
-
-          {/* <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
-            <div className="flex justify-between mb-3">
-              <h3 className="font-semibold">Next Match Day</h3>
-              <Calendar />
-            </div>
-            <p className="font-semibold">Wednesday 6:30pm</p>
-            <p className="text-gray-500">6-a-side Football</p>
-          </div> */}
-
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl lg:col-span-1">
             <h3 className="font-semibold mb-4">CLUB LEADERBOARD</h3>
             <div className="space-y-2">
               {sorted.slice(0, 5).map((p, i) => {
                 const points = Math.round(getPoints(p));
+                const isMe = p._id === player?._id;
                 return (
-                  <div key={p._id} className="flex justify-between">
+                  <div
+                    key={p._id}
+                    className={`flex justify-between text-sm font-semibold px-2 py-1 rounded-lg
+                      ${isMe ? "bg-yellow-300 text-black" : "text-black"}`}
+                  >
                     <span>
                       {i + 1}. {p.name}
+                      {isMe && (
+                        <span className="text-xs font-normal ml-1">(you)</span>
+                      )}
                     </span>
                     <span>{points} pts</span>
                   </div>

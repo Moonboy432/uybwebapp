@@ -17,12 +17,21 @@ export default function Admin() {
   const [active, setActive] = useState("view");
   const [selected, setSelected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // ✅ new
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const navigate = useNavigate();
 
+  // ✅ Updated points formula
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    return p.goals * 3 + p.assists * 2 + attendance;
+    const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+    return (
+      p.goals * 3 +
+      p.assists * 2 +
+      attendance -
+      (p.yellowCards ?? 0) * 1 -
+      (p.redCards ?? 0) * 3 +
+      zeroDebtBonus
+    );
   };
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
@@ -40,7 +49,7 @@ export default function Admin() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 text-white">
-      {/* ✅ Confirm Delete Modal */}
+      {/* Confirm Delete Modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md px-4">
           <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl p-6 w-full max-w-sm shadow-xl text-black">
@@ -151,76 +160,101 @@ export default function Admin() {
           <Card label="TOP PLAYER" value={sorted[0]?.name} />
         </div>
 
-        {/* PLAYER TABLE */}
+        {/* ✅ PLAYER TABLE — with 🟨 🟥 BONUS and PTS columns */}
         {active === "view" && (
-          <table className="min-w-[600px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
-            <thead>
-              <tr>
-                <th className="text-black font-bold">NO</th>
-                <th className="text-black font-bold"></th>
-                <th className="text-black font-bold">PLAYER NAME</th>
-                <th className="text-black font-bold">GOALS</th>
-                <th className="text-black font-bold">ASSISTS</th>
-                <th className="text-black font-bold">ATTENDANCE</th>
-                <th className="text-black font-bold">DEBT</th>
-                <th className="text-black font-bold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p, i) => (
-                <tr key={p._id} className="text-center border-t border-black">
-                  <td className="text-black font-bold">{i + 1}</td>
-                  <td className="py-2">
-                    {p.avatar ? (
-                      <img
-                        src={p.avatar}
-                        alt={p.name}
-                        className="w-9 h-9 rounded-full object-cover mx-auto border-2 border-white shadow"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-blue-700 text-white flex items-center justify-center mx-auto font-bold text-sm border-2 border-white shadow">
-                        {p.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-black font-bold">{p.name}</td>
-                  <td className="text-black font-bold">{p.goals}</td>
-                  <td className="text-black font-bold">{p.assists}</td>
-                  <td className="text-black font-bold">{p.played}</td>
-                  <td className="text-black font-bold">{p.debt}TL</td>
-                  <td className="flex justify-center gap-3 py-2">
-                    <Pen
-                      onClick={() => setSelected(p)}
-                      className="text-black px-1 mt-2 cursor-pointer"
-                    />
-                    <Trash
-                      onClick={() => setConfirmDelete(p)} // ✅ now opens modal instead of deleting
-                      className="text-red-600 px-1 mt-2 cursor-pointer"
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[900px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
+              <thead>
+                <tr>
+                  <th className="p-2 text-black font-bold">NO</th>
+                  <th className="p-2 text-black font-bold"></th>
+                  <th className="p-2 text-black font-bold">PLAYER NAME</th>
+                  <th className="p-2 text-black font-bold">GOALS</th>
+                  <th className="p-2 text-black font-bold">ASSISTS</th>
+                  <th className="p-2 text-black font-bold">ATTENDANCE</th>
+                  <th className="p-2 text-black font-bold">🟨</th>
+                  <th className="p-2 text-black font-bold">🟥</th>
+                  <th className="p-2 text-black font-bold">🎁 BONUS</th>
+                  <th className="p-2 text-black font-bold">DEBT</th>
+                  <th className="p-2 text-black font-bold">PTS</th>
+                  <th className="p-2 text-black font-bold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sorted.map((p, i) => {
+                  const attendance =
+                    totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
+                  const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+                  const points = Math.round(getPoints(p));
+                  return (
+                    <tr
+                      key={p._id}
+                      className="text-center border-t border-black"
+                    >
+                      <td className="p-2 text-black font-bold">{i + 1}</td>
+                      <td className="py-2">
+                        {p.avatar ? (
+                          <img
+                            src={p.avatar}
+                            alt={p.name}
+                            className="w-9 h-9 rounded-full object-cover mx-auto border-2 border-white shadow"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-blue-700 text-white flex items-center justify-center mx-auto font-bold text-sm border-2 border-white shadow">
+                            {p.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-2 text-black font-bold">{p.name}</td>
+                      <td className="p-2 text-black font-bold">{p.goals}</td>
+                      <td className="p-2 text-black font-bold">{p.assists}</td>
+                      <td className="p-2 text-black font-bold">
+                        {Math.round(attendance)}%
+                      </td>
+                      <td className="p-2 text-black font-bold">
+                        {p.yellowCards ?? 0}
+                      </td>
+                      <td className="p-2 text-black font-bold">
+                        {p.redCards ?? 0}
+                      </td>
+                      <td className="p-2 text-black font-bold">
+                        {zeroDebtBonus > 0 ? "+2" : "-"}
+                      </td>
+                      <td className="p-2 text-black font-bold">{p.debt}TL</td>
+                      <td className="p-2 text-blue-900 font-extrabold">
+                        {points}
+                      </td>
+                      <td className="flex justify-center gap-3 py-2">
+                        <Pen
+                          onClick={() => setSelected(p)}
+                          className="text-black px-1 mt-2 cursor-pointer"
+                        />
+                        <Trash
+                          onClick={() => setConfirmDelete(p)}
+                          className="text-red-600 px-1 mt-2 cursor-pointer"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* ADD PLAYER */}
         {active === "add" && <AddPlayerForm addPlayer={addPlayer} />}
 
-        {/* LEADERBOARD */}
+        {/* ✅ LEADERBOARD — updated formula + card/bonus badges */}
         {active === "leaderboard" && (
           <div className="space-y-2">
             {sorted.map((p, i) => {
-              const attendance =
-                totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-              const points = Math.round(
-                p.goals * 3 + p.assists * 2 + attendance,
-              );
+              const points = Math.round(getPoints(p));
               return (
                 <div
                   key={p._id}
@@ -244,6 +278,21 @@ export default function Admin() {
                     </div>
                   )}
                   <span className="flex-1 font-bold">{p.name}</span>
+                  {p.debt === 0 && (
+                    <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full">
+                      🎁 +2
+                    </span>
+                  )}
+                  {(p.yellowCards ?? 0) > 0 && (
+                    <span className="text-xs bg-yellow-200 text-yellow-800 font-bold px-2 py-0.5 rounded-full">
+                      🟨 -{p.yellowCards}
+                    </span>
+                  )}
+                  {(p.redCards ?? 0) > 0 && (
+                    <span className="text-xs bg-red-200 text-red-800 font-bold px-2 py-0.5 rounded-full">
+                      🟥 -{(p.redCards ?? 0) * 3}
+                    </span>
+                  )}
                   <span className="font-bold">{points} pts</span>
                 </div>
               );
@@ -340,6 +389,30 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
           "Save Total Matches"
         )}
       </button>
+
+      {/* ✅ Points formula legend */}
+      <div className="mt-6 bg-white/40 rounded-lg p-4 text-black text-sm space-y-1">
+        <p className="font-bold mb-2">Points Formula</p>
+        <p>
+          ⚽ Goal = <strong>+3 pts</strong>
+        </p>
+        <p>
+          🅰️ Assist = <strong>+2 pts</strong>
+        </p>
+        <p>
+          📅 Attendance = <strong>+% of matches played</strong>
+        </p>
+        <p>
+          🎁 Zero Debt = <strong>+2 pts</strong>
+        </p>
+        <p>
+          🟨 Yellow Card = <strong>-1 pt each</strong>
+        </p>
+        <p>
+          🟥 Red Card = <strong>-3 pts each</strong>
+        </p>
+      </div>
+
       {alert && (
         <div
           className={`mt-3 px-4 py-2 rounded-lg text-sm font-semibold text-center border shadow
@@ -355,8 +428,8 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
 function AddPlayerForm({ addPlayer }) {
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(false); // ✅ new
-  const [alert, setAlert] = useState(null); // ✅ new
+  const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState(null);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -452,12 +525,15 @@ function AddPlayerForm({ addPlayer }) {
   );
 }
 
+// ✅ Updated EditModal — yellowCards, redCards fields + live points preview
 function EditModal({ player, updatePlayer, onClose }) {
   const [form, setForm] = useState({
     ...player,
     goals: player.goals ?? "",
     assists: player.assists ?? "",
     played: player.played ?? "",
+    yellowCards: player.yellowCards ?? "",
+    redCards: player.redCards ?? "",
     debt: player.debt ?? "",
   });
 
@@ -482,6 +558,8 @@ function EditModal({ player, updatePlayer, onClose }) {
       formData.append("goals", Number(form.goals) || 0);
       formData.append("assists", Number(form.assists) || 0);
       formData.append("played", Number(form.played) || 0);
+      formData.append("yellowCards", Number(form.yellowCards) || 0); // ✅
+      formData.append("redCards", Number(form.redCards) || 0); // ✅
       formData.append("debt", Number(form.debt) || 0);
       if (image) formData.append("avatar", image);
 
@@ -507,17 +585,20 @@ function EditModal({ player, updatePlayer, onClose }) {
     }
   };
 
+  // ✅ Includes yellowCards and redCards
   const fields = [
     { key: "name", label: "Player Name" },
-    { key: "goals", label: "Goals Scored" },
-    { key: "assists", label: "Assists" },
-    { key: "played", label: "Matches Played" },
-    { key: "debt", label: "Outstanding Debt (TL)" },
+    { key: "goals", label: "⚽ Goals Scored" },
+    { key: "assists", label: "🅰️ Assists" },
+    { key: "played", label: "📅 Matches Played" },
+    { key: "yellowCards", label: "🟨 Yellow Cards (-1 pt each)" },
+    { key: "redCards", label: "🟥 Red Cards (-3 pts each)" },
+    { key: "debt", label: "💳 Outstanding Debt (TL)" },
   ];
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center backdrop-blur-md px-4">
-      <div className="relative bg-gradient-to-r from-blue-400 to-blue-300 text-black p-6 rounded-xl w-full max-w-sm shadow-xl">
+    <div className="fixed inset-0 flex items-center justify-center backdrop-blur-md px-4 z-50 overflow-y-auto">
+      <div className="relative bg-gradient-to-r from-blue-400 to-blue-300 text-black p-6 rounded-xl w-full max-w-sm shadow-xl my-6">
         <button
           onClick={onClose}
           className="absolute top-2 right-3 text-xl font-bold text-black hover:text-red-500"
@@ -571,6 +652,22 @@ function EditModal({ player, updatePlayer, onClose }) {
             />
           </div>
         ))}
+
+        {/* ✅ Live points preview (excludes attendance since we don't have totalMatches here) */}
+        <div className="bg-white/40 rounded-lg p-3 mb-3 text-sm font-semibold text-black">
+          Preview Points:{" "}
+          <span className="text-blue-900 font-bold text-base">
+            {Math.round(
+              (Number(form.goals) || 0) * 3 +
+                (Number(form.assists) || 0) * 2 +
+                (Number(form.debt) === 0 ? 2 : 0) -
+                (Number(form.yellowCards) || 0) * 1 -
+                (Number(form.redCards) || 0) * 3,
+            )}{" "}
+            pts
+          </span>
+          <span className="text-xs text-gray-600 ml-1">(excl. attendance)</span>
+        </div>
 
         <button
           onClick={handleSubmit}

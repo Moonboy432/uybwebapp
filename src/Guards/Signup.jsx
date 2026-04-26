@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"; // ✅ import Eye icons
 import API_URL from "../config";
 
 export default function Signup() {
   const navigate = useNavigate();
-
 
   const [form, setForm] = useState({
     name: "",
@@ -14,25 +13,29 @@ export default function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
-  
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // ✅
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // ✅
+
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError(""); // clear error when user types
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
     const { confirmPassword, ...payload } = form;
+    setLoading(true);
 
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
@@ -50,20 +53,19 @@ export default function Signup() {
         email: "",
         password: "",
         confirmPassword: "",
-      })
+      });
       alert("Account created successfully! Please log in.");
       navigate("/login");
-
-
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      setError(err.message); // ✅ custom error instead of alert
+    } finally {
+      setLoading(false);
     }
-
   };
 
   return (
-    <section className="h-screen bg-gradient-to-r from-blue-400 to-blue-300 shadow-md py-10 px-0">
+    <section className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 shadow-md py-10 px-0">
       <div className="h-10 bg-gradient-to-r from-blue-400 to-blue-300 shadow-md w-screen top-0 absolute flex items-center">
         <Link to="/Home">
           <p className="flex items-center gap-2 text-white hover:text-yellow-400 font-bold">
@@ -72,6 +74,7 @@ export default function Signup() {
           </p>
         </Link>
       </div>
+
       {/* Logo */}
       <div className="flex items-center gap-2 mb-6">
         <Link to="/Home">
@@ -80,7 +83,6 @@ export default function Signup() {
             alt="Club Logo"
             className="w-30 h-30 object-fit hover:cursor-pointer"
           />
-          {/* <span className="font-bold text-xl">UYB FC</span> */}
         </Link>
       </div>
 
@@ -90,8 +92,15 @@ export default function Signup() {
         </h2>
 
         <p className="text-center text-black mb-8 text-sm">
-          JOIN US FOR FOOTBALL EVERYWEEK
+          JOIN US FOR FOOTBALL EVERY WEEK
         </p>
+
+        {/* ✅ Custom error message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm font-semibold text-center">
+            ⚠️ {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-blue">
           {/* Name */}
@@ -130,6 +139,8 @@ export default function Signup() {
             required
             className="w-full border-2 rounded-lg px-4 py-3"
           />
+
+          {/* Email */}
           <input
             type="email"
             name="email"
@@ -139,31 +150,56 @@ export default function Signup() {
             required
             className="w-full border-2 rounded-lg px-4 py-3"
           />
-          <input
-            type="password"
-            name="password"
-            placeholder="Create Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full border-2 rounded-lg px-4 py-3"
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            required
-            className="w-full border-2 rounded-lg px-4 py-3"
-          />
+
+          {/* Password */}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Create Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full border-2 rounded-lg px-4 py-3 pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+
+          {/* Confirm Password */}
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+              className="w-full border-2 rounded-lg px-4 py-3 pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+            >
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+
           {/* Submit */}
           <button
             type="submit"
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition shadow-xl "
+            disabled={loading}
+            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Join the Squad
+            {loading ? "Creating Account..." : "Join the Squad"}
           </button>
+
           <div>
             <p className="text-center text-sm mt-4">
               Already have an account?{" "}
