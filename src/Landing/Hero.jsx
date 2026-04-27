@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import blue from "../assets/blue.jpg"
 
 export default function Hero() {
   return (
@@ -33,7 +34,7 @@ export default function Hero() {
         {/* Image Section */}
         <div className="flex-1 relative w-full lg:w-1/2 h-96 lg:h-[28rem] rounded-xl overflow-hidden shadow-2xl">
           <img
-            src="src/assets/blue.jpg"
+            src={blue}
             alt="Players kicking football"
             className="w-full h-full object-cover"
           />
