@@ -13,16 +13,22 @@ import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
 
+const MATCH_COST = 200; // TL per match attended
+
+// Debt is dynamic: (matches played × 200) - total paid
+// Positive = owes money, Negative = surplus/credit
+const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
+
 export default function PlayerDashboard() {
   const { players, totalMatches } = usePlayers();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  // ✅ Updated points formula
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+    const debt = getDebt(p);
+    const zeroDebtBonus = debt <= 0 ? 2 : 0; // surplus also earns the bonus
     return (
       p.goals * 3 +
       p.assists * 2 +
@@ -56,6 +62,12 @@ export default function PlayerDashboard() {
       ? Math.round((player.played / totalMatches) * 100)
       : 0;
 
+  // Derived finance values for the logged-in player
+  const playerDebt = player ? getDebt(player) : 0;
+  const playerOwed = player ? (player.played ?? 0) * MATCH_COST : 0;
+  const playerPaid = player?.paid ?? 0;
+  const playerBalance = playerPaid - playerOwed; // positive = credit, negative = owes
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
       {/* Full Page Leaderboard Overlay */}
@@ -76,6 +88,7 @@ export default function PlayerDashboard() {
             <div className="max-w-lg mx-auto space-y-3">
               {sorted.map((p, i) => {
                 const points = Math.round(getPoints(p));
+                const debt = getDebt(p);
                 const isMe = p._id === player?._id;
                 return (
                   <div
@@ -108,8 +121,7 @@ export default function PlayerDashboard() {
                         <span className="text-sm font-normal">(you)</span>
                       )}
                     </span>
-                    {/* ✅ Leaderboard badges */}
-                    {p.debt === 0 && (
+                    {debt <= 0 && (
                       <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full">
                         🎁 +2
                       </span>
@@ -228,9 +240,9 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {/* ✅ Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* 1. Total Points — full width, prominent */}
+          {/* 1. Total Points */}
           <div className="md:col-span-2 bg-yellow-400 p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
               <span className="font-bold text-black text-lg">TOTAL POINTS</span>
@@ -239,10 +251,6 @@ export default function PlayerDashboard() {
             <p className="text-5xl font-extrabold text-black">
               {player ? Math.round(getPoints(player)) : 0}
             </p>
-            {/* <p className="text-xs text-black/60 mt-1">
-              Goals×3 + Assists×2 + Attendance − Yellow×1 − Red×3 + Zero Debt
-              Bonus
-            </p> */}
           </div>
 
           {/* 2. Goals & Assists */}
@@ -309,9 +317,9 @@ export default function PlayerDashboard() {
               <div className="w-px bg-black/20" />
               <div className="text-center">
                 <p
-                  className={`text-4xl font-extrabold ${player?.debt === 0 ? "text-green-600" : "text-gray-400"}`}
+                  className={`text-4xl font-extrabold ${playerDebt <= 0 ? "text-green-600" : "text-gray-400"}`}
                 >
-                  {player?.debt === 0 ? "+2" : "0"}
+                  {playerDebt <= 0 ? "+2" : "0"}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">🎁 Zero Debt Bonus</p>
               </div>
@@ -325,9 +333,13 @@ export default function PlayerDashboard() {
               <CreditCard className="text-black" />
             </div>
             <p
-              className={`text-3xl font-extrabold ${player?.debt === 0 ? "text-green-600" : "text-red-500"}`}
+              className={`text-3xl font-extrabold ${playerDebt <= 0 ? "text-green-600" : "text-red-500"}`}
             >
-              {player?.debt === 0 ? "✓ Paid" : `${player?.debt} TL`}
+              {playerDebt <= 0
+                ? playerBalance > 0
+                  ? `✓ +${playerBalance} TL`
+                  : "✓ Paid"
+                : `${playerDebt} TL`}
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"; // ✅ import Eye icons
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import API_URL from "../config";
 
 export default function Login() {
@@ -11,19 +11,24 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // ✅ add this
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     setError("");
     setLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: username, password }),
+        body: JSON.stringify({
+          email: username,
+          password,
+        }),
       });
 
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.message || "Invalid credentials");
 
       localStorage.setItem("token", data.token);
@@ -41,87 +46,97 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-400 to-blue-300 px-4 pt-16">
-      {/* Top bar */}
-      <div className="w-full h-12 fixed top-0 left-0 bg-gradient-to-r from-blue-400 to-blue-300 shadow-md flex items-center px-4 z-50">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-blue-400 to-blue-300 px-4 sm:px-6 pt-16 flex items-center justify-center">
+      {/* Top Bar */}
+      <div className="fixed top-0 left-0 w-full h-14 bg-gradient-to-r from-blue-400 to-blue-300 shadow-md flex items-center px-4 z-50">
         <Link to="/Home">
-          <p className="flex items-center gap-2 text-white hover:text-yellow-400 font-bold">
-            <ArrowLeft /> Homepage
+          <p className="flex items-center gap-2 text-white hover:text-yellow-400 font-bold text-sm sm:text-base">
+            <ArrowLeft size={20} />
+            Homepage
           </p>
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/Home">
-          <img
-            src="/uybfclogo.png"
-            alt="Club Logo"
-            className="w-30 h-30 object-fit hover:cursor-pointer"
-          />
-        </Link>
-      </div>
+      {/* Main Card */}
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
+        {/* Logo */}
+        <div className="flex justify-center mb-5">
+          <Link to="/Home">
+            <img
+              src="/uybfclogo.png"
+              alt="Club Logo"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
+            />
+          </Link>
+        </div>
 
-      {/* Login Card */}
-      <div className="bg-blue p-8 rounded-xl shadow-xl w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">PLAYER LOGIN</h2>
+        {/* Title */}
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-6">
+          PLAYER LOGIN
+        </h2>
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm font-semibold text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm text-center font-semibold">
             ⚠️ {error}
           </div>
         )}
 
+        {/* Email */}
         <input
-          name="email"
           type="email"
-          placeholder="Email"
+          name="email"
           autoComplete="email"
+          placeholder="Email"
           value={username}
           onChange={(e) => {
             setUsername(e.target.value);
             setError("");
           }}
-          className="w-full border-2 p-3 rounded-lg mb-4"
+          className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg mb-4 text-sm sm:text-base"
         />
 
-        {/* ✅ Password input with toggle */}
-        <div className="relative mb-6">
+        {/* Password */}
+        <div className="relative mb-5">
           <input
+            type={showPassword ? "text" : "password"}
             name="password"
             autoComplete="current-password"
-            type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
               setError("");
             }}
-            className="w-full border-2 p-3 rounded-lg pr-12"
+            className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg pr-12 text-sm sm:text-base"
           />
+
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 hover:text-black"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
 
+        {/* Login Button */}
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition duration-300 disabled:opacity-50"
         >
           {loading ? "Logging in..." : "Login to Dashboard"}
         </button>
 
-        <p className="text-center text-sm mt-4">
+        {/* Signup */}
+        <p className="text-center text-sm mt-5">
           Don't have an account?{" "}
           <Link
             to="/signup"
             className="text-blue-600 font-semibold hover:underline"
           >
-            Sign up
+            Join The Squad
           </Link>
         </p>
       </div>

@@ -4,6 +4,12 @@ import { Pen, Trash } from "lucide-react";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
 
+const MATCH_COST = 200; // TL per match attended
+
+// Debt is dynamic: (matches played × 200) - total paid
+// Negative = surplus/credit, Positive = owes money
+const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
+
 export default function Admin() {
   const {
     players,
@@ -13,17 +19,17 @@ export default function Admin() {
     totalMatches,
     updateTotalMatches,
   } = usePlayers();
-  const [newTotalMatches, setNewTotalMatches] = useState(totalMatches);
   const [active, setActive] = useState("view");
   const [selected, setSelected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const navigate = useNavigate();
 
-  // ✅ Updated points formula
+  // Points formula uses dynamic debt
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+    const debt = getDebt(p);
+    const zeroDebtBonus = debt <= 0 ? 2 : 0; // surplus also counts as zero debt
     return (
       p.goals * 3 +
       p.assists * 2 +
@@ -36,16 +42,22 @@ export default function Admin() {
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
 
-  const Card = ({ label, value }) => {
-    return (
-      <div className="p-4 w-40 h-35 rounded-2xl shadow-xl bg-gradient-to-r from-blue-400 to-blue-300">
-        <h2 className="text-m font-bold text-black py-4">{label}</h2>
-        <p className="text-m font-bold text-black border-1 rounded-lg mt-7">
-          {value}
-        </p>
-      </div>
-    );
-  };
+  const Card = ({ label, value }) => (
+    <div className="p-4 w-40 h-35 rounded-2xl shadow-xl bg-gradient-to-r from-blue-400 to-blue-300">
+      <h2 className="text-m font-bold text-black py-4">{label}</h2>
+      <p className="text-m font-bold text-black border-1 rounded-lg mt-7">
+        {value}
+      </p>
+    </div>
+  );
+
+  // Total debt across all players (sum of positives only)
+  const totalDebt = players.reduce((s, p) => {
+    const d = getDebt(p);
+    return s + (d > 0 ? d : 0);
+  }, 0);
+
+  const debtClearedCount = players.filter((p) => getDebt(p) <= 0).length;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 text-white">
@@ -149,21 +161,15 @@ export default function Admin() {
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card label="TOTAL PLAYERS" value={players.length} />
-          <Card
-            label="DEBT CLEARED"
-            value={players.filter((p) => p.debt === 0).length}
-          />
-          <Card
-            label="TOTAL DEBT"
-            value={`${players.reduce((s, p) => s + p.debt, 0)} TL`}
-          />
+          <Card label="DEBT CLEARED" value={debtClearedCount} />
+          <Card label="TOTAL DEBT" value={`${totalDebt} TL`} />
           <Card label="TOP PLAYER" value={sorted[0]?.name} />
         </div>
 
-        {/* ✅ PLAYER TABLE — with 🟨 🟥 BONUS and PTS columns */}
+        {/* PLAYER TABLE */}
         {active === "view" && (
           <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
+            <table className="min-w-[1000px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
               <thead>
                 <tr>
                   <th className="p-2 text-black font-bold">NO</th>
@@ -175,7 +181,10 @@ export default function Admin() {
                   <th className="p-2 text-black font-bold">🟨</th>
                   <th className="p-2 text-black font-bold">🟥</th>
                   <th className="p-2 text-black font-bold">🎁 BONUS</th>
-                  <th className="p-2 text-black font-bold">DEBT</th>
+                  {/* New columns */}
+                  <th className="p-2 text-black font-bold">OWED</th>
+                  <th className="p-2 text-black font-bold">PAID</th>
+                  <th className="p-2 text-black font-bold">BALANCE</th>
                   <th className="p-2 text-black font-bold">PTS</th>
                   <th className="p-2 text-black font-bold">Actions</th>
                 </tr>
@@ -184,8 +193,14 @@ export default function Admin() {
                 {sorted.map((p, i) => {
                   const attendance =
                     totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-                  const zeroDebtBonus = p.debt === 0 ? 2 : 0;
+                  const debt = getDebt(p);
+                  const zeroDebtBonus = debt <= 0 ? 2 : 0;
                   const points = Math.round(getPoints(p));
+                  const owed = (p.played ?? 0) * MATCH_COST;
+                  const paid = p.paid ?? 0;
+                  // balance: negative = owes, positive = credit
+                  const balance = paid - owed;
+
                   return (
                     <tr
                       key={p._id}
@@ -225,7 +240,20 @@ export default function Admin() {
                       <td className="p-2 text-black font-bold">
                         {zeroDebtBonus > 0 ? "+2" : "-"}
                       </td>
-                      <td className="p-2 text-black font-bold">{p.debt}TL</td>
+                      {/* Owed = matches × 200 */}
+                      <td className="p-2 text-black font-bold">{owed} TL</td>
+                      {/* Paid — editable via modal */}
+                      <td className="p-2 text-green-800 font-bold">
+                        {paid} TL
+                      </td>
+                      {/* Balance: green = credit/surplus, red = owes */}
+                      <td
+                        className={`p-2 font-extrabold ${
+                          balance >= 0 ? "text-green-700" : "text-red-700"
+                        }`}
+                      >
+                        {balance >= 0 ? `+${balance} TL` : `${balance} TL`}
+                      </td>
                       <td className="p-2 text-blue-900 font-extrabold">
                         {points}
                       </td>
@@ -250,11 +278,12 @@ export default function Admin() {
         {/* ADD PLAYER */}
         {active === "add" && <AddPlayerForm addPlayer={addPlayer} />}
 
-        {/* ✅ LEADERBOARD — updated formula + card/bonus badges */}
+        {/* LEADERBOARD */}
         {active === "leaderboard" && (
           <div className="space-y-2">
             {sorted.map((p, i) => {
               const points = Math.round(getPoints(p));
+              const debt = getDebt(p);
               return (
                 <div
                   key={p._id}
@@ -278,7 +307,13 @@ export default function Admin() {
                     </div>
                   )}
                   <span className="flex-1 font-bold">{p.name}</span>
-                  {p.debt === 0 && (
+                  {/* Show surplus badge if they overpaid */}
+                  {debt < 0 && (
+                    <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                      💰 +{Math.abs(debt)} TL credit
+                    </span>
+                  )}
+                  {debt <= 0 && (
                     <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full">
                       🎁 +2
                     </span>
@@ -314,6 +349,7 @@ export default function Admin() {
             player={selected}
             updatePlayer={updatePlayer}
             onClose={() => setSelected(null)}
+            totalMatches={totalMatches}
           />
         )}
       </main>
@@ -390,7 +426,6 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
         )}
       </button>
 
-      {/* ✅ Points formula legend */}
       <div className="mt-6 bg-white/40 rounded-lg p-4 text-black text-sm space-y-1">
         <p className="font-bold mb-2">Points Formula</p>
         <p>
@@ -403,13 +438,24 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
           📅 Attendance = <strong>+% of matches played</strong>
         </p>
         <p>
-          🎁 Zero Debt = <strong>+2 pts</strong>
+          🎁 Zero / Cleared Debt = <strong>+2 pts</strong>
         </p>
         <p>
           🟨 Yellow Card = <strong>-1 pt each</strong>
         </p>
         <p>
           🟥 Red Card = <strong>-3 pts each</strong>
+        </p>
+        <hr className="border-black/20 my-2" />
+        <p className="font-bold mb-1">Finance</p>
+        <p>
+          💰 Match cost = <strong>{MATCH_COST} TL per match attended</strong>
+        </p>
+        <p>
+          Debt = <strong>(Matches Played × {MATCH_COST}) − Total Paid</strong>
+        </p>
+        <p>
+          Surplus players still earn the <strong>🎁 +2 bonus</strong>
         </p>
       </div>
 
@@ -525,8 +571,8 @@ function AddPlayerForm({ addPlayer }) {
   );
 }
 
-// ✅ Updated EditModal — yellowCards, redCards fields + live points preview
-function EditModal({ player, updatePlayer, onClose }) {
+// EditModal — paid is accumulated via +Add Payment, never overwritten manually
+function EditModal({ player, updatePlayer, onClose, totalMatches }) {
   const [form, setForm] = useState({
     ...player,
     goals: player.goals ?? "",
@@ -534,20 +580,27 @@ function EditModal({ player, updatePlayer, onClose }) {
     played: player.played ?? "",
     yellowCards: player.yellowCards ?? "",
     redCards: player.redCards ?? "",
-    debt: player.debt ?? "",
+    paid: player.paid ?? 0,
   });
 
+  const [payment, setPayment] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
   const handleChange = (key, value) => {
-    if (key === "name") {
-      setForm({ ...form, [key]: value });
-    } else {
-      setForm({ ...form, [key]: value === "" ? "" : value });
-    }
+    setForm({ ...form, [key]: value === "" ? "" : value });
   };
+
+  const handleAddPayment = () => {
+    const amount = Number(payment);
+    if (!amount || amount <= 0) return;
+    setForm((prev) => ({ ...prev, paid: (Number(prev.paid) || 0) + amount }));
+    setPayment("");
+  };
+
+  const debt =
+    (Number(form.played) || 0) * MATCH_COST - (Number(form.paid) || 0);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -558,9 +611,9 @@ function EditModal({ player, updatePlayer, onClose }) {
       formData.append("goals", Number(form.goals) || 0);
       formData.append("assists", Number(form.assists) || 0);
       formData.append("played", Number(form.played) || 0);
-      formData.append("yellowCards", Number(form.yellowCards) || 0); // ✅
-      formData.append("redCards", Number(form.redCards) || 0); // ✅
-      formData.append("debt", Number(form.debt) || 0);
+      formData.append("yellowCards", Number(form.yellowCards) || 0);
+      formData.append("redCards", Number(form.redCards) || 0);
+      formData.append("paid", Number(form.paid) || 0);
       if (image) formData.append("avatar", image);
 
       const res = await fetch(`${API_URL}/api/players/${form._id}`, {
@@ -585,7 +638,6 @@ function EditModal({ player, updatePlayer, onClose }) {
     }
   };
 
-  // ✅ Includes yellowCards and redCards
   const fields = [
     { key: "name", label: "Player Name" },
     { key: "goals", label: "⚽ Goals Scored" },
@@ -593,7 +645,6 @@ function EditModal({ player, updatePlayer, onClose }) {
     { key: "played", label: "📅 Matches Played" },
     { key: "yellowCards", label: "🟨 Yellow Cards (-1 pt each)" },
     { key: "redCards", label: "🟥 Red Cards (-3 pts each)" },
-    { key: "debt", label: "💳 Outstanding Debt (TL)" },
   ];
 
   return (
@@ -608,6 +659,7 @@ function EditModal({ player, updatePlayer, onClose }) {
 
         <h2 className="font-bold mb-4 text-lg">Edit Player</h2>
 
+        {/* Avatar */}
         <div className="flex items-center gap-4 mb-4">
           {image ? (
             <img
@@ -640,6 +692,7 @@ function EditModal({ player, updatePlayer, onClose }) {
           </div>
         </div>
 
+        {/* Standard fields */}
         {fields.map(({ key, label }) => (
           <div key={key} className="mb-3">
             <label className="block text-sm font-semibold mb-1">{label}</label>
@@ -653,20 +706,39 @@ function EditModal({ player, updatePlayer, onClose }) {
           </div>
         ))}
 
-        {/* ✅ Live points preview (excludes attendance since we don't have totalMatches here) */}
-        <div className="bg-white/40 rounded-lg p-3 mb-3 text-sm font-semibold text-black">
-          Preview Points:{" "}
-          <span className="text-blue-900 font-bold text-base">
-            {Math.round(
-              (Number(form.goals) || 0) * 3 +
-                (Number(form.assists) || 0) * 2 +
-                (Number(form.debt) === 0 ? 2 : 0) -
-                (Number(form.yellowCards) || 0) * 1 -
-                (Number(form.redCards) || 0) * 3,
-            )}{" "}
-            pts
-          </span>
-          <span className="text-xs text-gray-600 ml-1">(excl. attendance)</span>
+        {/* Payment section */}
+        <div className="bg-white/40 rounded-lg p-3 mb-3 space-y-2">
+          <div className="flex justify-between text-sm font-semibold">
+            <span>💳 Total Paid</span>
+            <span className="text-green-700 font-bold">
+              {Number(form.paid) || 0} TL
+            </span>
+          </div>
+          <div className="flex justify-between text-sm font-semibold">
+            <span>Balance</span>
+            <span
+              className={`font-bold ${debt <= 0 ? "text-green-700" : "text-red-600"}`}
+            >
+              {debt <= 0 ? `+${Math.abs(debt)} TL surplus` : `${debt} TL owes`}
+            </span>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={payment}
+              onChange={(e) => setPayment(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddPayment()}
+              placeholder="Enter amount (TL)"
+              className="flex-1 p-2 border-2 border-black rounded bg-white text-sm"
+            />
+            <button
+              onClick={handleAddPayment}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold px-3 rounded shadow"
+            >
+              + Add
+            </button>
+          </div>
         </div>
 
         <button
