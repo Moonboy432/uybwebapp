@@ -15,8 +15,6 @@ import API_URL from "../config";
 
 const MATCH_COST = 200; // TL per match attended
 
-// Debt is dynamic: (matches played × 200) - total paid
-// Positive = owes money, Negative = surplus/credit
 const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
 
 export default function PlayerDashboard() {
@@ -28,7 +26,7 @@ export default function PlayerDashboard() {
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
     const debt = getDebt(p);
-    const zeroDebtBonus = debt <= 0 ? 2 : 0; // surplus also earns the bonus
+    const zeroDebtBonus = debt <= 0 ? 2 : 0;
     return (
       p.goals * 3 +
       p.assists * 2 +
@@ -62,11 +60,10 @@ export default function PlayerDashboard() {
       ? Math.round((player.played / totalMatches) * 100)
       : 0;
 
-  // Derived finance values for the logged-in player
   const playerDebt = player ? getDebt(player) : 0;
   const playerOwed = player ? (player.played ?? 0) * MATCH_COST : 0;
   const playerPaid = player?.paid ?? 0;
-  const playerBalance = playerPaid - playerOwed; // positive = credit, negative = owes
+  const playerBalance = playerPaid - playerOwed;
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
@@ -164,9 +161,9 @@ export default function PlayerDashboard() {
 
       {/* Sidebar */}
       <aside
-        className={`min-h-screen fixed md:static z-50 top-0 left-0 h-full w-50 bg-blue-300 shadow-md p-6 transform transition-transform duration-200
+        className={`fixed md:static z-50 top-0 left-0 h-full w-50 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0 md:flex md:flex-col`}
+        md:translate-x-0`}
       >
         <div className="flex items-center justify-between mb-8 md:hidden">
           <img
@@ -181,6 +178,8 @@ export default function PlayerDashboard() {
         <div className="flex items-center justify-center">
           <h2 className="text-2xl font-bold hidden md:block">UYB.FC</h2>
         </div>
+
+        {/* Nav takes up remaining space, pushing logout to bottom */}
         <nav className="space-y-4 flex-1">
           <button
             onClick={() => {
@@ -189,19 +188,21 @@ export default function PlayerDashboard() {
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
           >
-            <Trophy size={20} /> <p className="font-bold">Ranks</p>
+            <Trophy size={20} /> <p className="font-bold">League</p>
           </button>
         </nav>
 
-        <Link to="/home">
-          <button
-            onClick={() => localStorage.removeItem("token")}
-            className="flex items-center gap-3 text-red-500 hover:bg-red-50 p-2 rounded-xl mt-6"
-          >
-            <LogOut size={20} className="font-bold text-black shadow-xl" />
-            <span className="text-black font-bold">LOGOUT</span>
-          </button>
-        </Link>
+        {/* Logout pinned to bottom, matching Admin style */}
+        <div className="mt-auto">
+          <Link to="/home">
+            <button
+              onClick={() => localStorage.removeItem("token")}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg shadow"
+            >
+              Logout
+            </button>
+          </Link>
+        </div>
       </aside>
 
       {/* Main Content */}
