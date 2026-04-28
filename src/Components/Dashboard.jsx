@@ -70,7 +70,8 @@ export default function PlayerDashboard() {
       {/* Full Page Leaderboard Overlay */}
       {showLeaderboard && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* FIX 4: reduced base padding p-4, larger on sm+ */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-6">
               <img
                 src="/uybfclogo.png"
@@ -159,9 +160,9 @@ export default function PlayerDashboard() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — FIX 2: w-44 on mobile, w-52 on sm+ */}
       <aside
-        className={`fixed md:static z-50 top-0 left-0 min-h-full w-50 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
+        className={`fixed md:static z-50 top-0 left-0 min-h-full w-44 sm:w-52 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0`}
       >
@@ -179,7 +180,6 @@ export default function PlayerDashboard() {
           <h2 className="text-2xl font-bold hidden md:block">UYB.FC</h2>
         </div>
 
-        {/* Nav takes up remaining space, pushing logout to bottom */}
         <nav className="space-y-4 flex-1 mt-4">
           <button
             onClick={() => {
@@ -192,7 +192,6 @@ export default function PlayerDashboard() {
           </button>
         </nav>
 
-        {/* Logout pinned to bottom, matching Admin style */}
         <div className="mt-auto">
           <Link to="/home">
             <button
@@ -205,8 +204,8 @@ export default function PlayerDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 w-full">
+      {/* Main Content — FIX 3: p-4 base, p-6 on sm+ */}
+      <main className="flex-1 p-4 sm:p-6 w-full">
         {/* Top bar mobile menu */}
         <div className="flex items-center gap-4 mb-6">
           <button
@@ -241,35 +240,35 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* 1. Total Points */}
-          <div className="md:col-span-2 bg-yellow-400 p-6 rounded-2xl shadow-xl">
+        {/* Stats Cards — FIX 5: gap-4 base, gap-6 on sm+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          {/* 1. Total Points — FIX 1a: p-4 base, p-6 on sm+; text-4xl base, text-5xl on sm+ */}
+          <div className="md:col-span-2 bg-yellow-400 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
               <span className="font-bold text-black text-lg">TOTAL POINTS</span>
               <ChartNoAxesCombined className="text-black" />
             </div>
-            <p className="text-5xl font-extrabold text-black">
+            <p className="text-4xl sm:text-5xl font-extrabold text-black">
               {player ? Math.round(getPoints(player)) : 0}
             </p>
           </div>
 
-          {/* 2. Goals & Assists */}
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+          {/* 2. Goals & Assists — FIX 1b: p-4 base, p-6 on sm+; text-3xl base, text-4xl on sm+ */}
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">GOALS & ASSISTS</span>
               <Trophy className="text-black" />
             </div>
             <div className="flex justify-around">
               <div className="text-center">
-                <p className="text-4xl font-extrabold text-black">
+                <p className="text-3xl sm:text-4xl font-extrabold text-black">
                   {player?.goals ?? 0}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">⚽ Goals</p>
               </div>
               <div className="w-px bg-black/20" />
               <div className="text-center">
-                <p className="text-4xl font-extrabold text-black">
+                <p className="text-3xl sm:text-4xl font-extrabold text-black">
                   {player?.assists ?? 0}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">🅰️ Assists</p>
@@ -277,15 +276,15 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 3. Yellow & Red Cards */}
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+          {/* 3. Yellow & Red Cards — FIX 1c */}
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">CARDS</span>
               <span className="text-lg">🟨🟥</span>
             </div>
             <div className="flex justify-around">
               <div className="text-center">
-                <p className="text-4xl font-extrabold text-yellow-500">
+                <p className="text-3xl sm:text-4xl font-extrabold text-yellow-500">
                   {player?.yellowCards ?? 0}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
@@ -294,7 +293,7 @@ export default function PlayerDashboard() {
               </div>
               <div className="w-px bg-black/20" />
               <div className="text-center">
-                <p className="text-4xl font-extrabold text-red-500">
+                <p className="text-3xl sm:text-4xl font-extrabold text-red-500">
                   {player?.redCards ?? 0}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">🟥 Red (-3 each)</p>
@@ -302,15 +301,15 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 4. Attendance & Zero Debt Bonus */}
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+          {/* 4. Attendance & Zero Debt Bonus — FIX 1d */}
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">ATTENDANCE & BONUS</span>
               <Calendar className="text-black" />
             </div>
             <div className="flex justify-around">
               <div className="text-center">
-                <p className="text-4xl font-extrabold text-black">
+                <p className="text-3xl sm:text-4xl font-extrabold text-black">
                   {attendance}%
                 </p>
                 <p className="text-xs text-gray-600 mt-1">📅 Attendance</p>
@@ -318,7 +317,7 @@ export default function PlayerDashboard() {
               <div className="w-px bg-black/20" />
               <div className="text-center">
                 <p
-                  className={`text-4xl font-extrabold ${playerDebt <= 0 ? "text-green-600" : "text-gray-400"}`}
+                  className={`text-3xl sm:text-4xl font-extrabold ${playerDebt <= 0 ? "text-green-600" : "text-gray-400"}`}
                 >
                   {playerDebt <= 0 ? "+2" : "0"}
                 </p>
@@ -327,8 +326,8 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 5. Debt */}
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl">
+          {/* 5. Debt — FIX 1e */}
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
               <span className="font-bold text-black">DEBT</span>
               <CreditCard className="text-black" />
@@ -347,7 +346,7 @@ export default function PlayerDashboard() {
 
         {/* Club Leaderboard preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-blue-200 p-6 rounded-2xl shadow-xl lg:col-span-1">
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl lg:col-span-1">
             <h3 className="font-semibold mb-4">CLUB LEADERBOARD</h3>
             <div className="space-y-2">
               {sorted.slice(0, 5).map((p, i) => {
