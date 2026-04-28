@@ -161,7 +161,7 @@ export default function PlayerDashboard() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static z-50 top-0 left-0 h-full w-50 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
+        className={`fixed md:static z-50 top-0 left-0 min-h-full w-50 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0`}
       >
@@ -180,7 +180,7 @@ export default function PlayerDashboard() {
         </div>
 
         {/* Nav takes up remaining space, pushing logout to bottom */}
-        <nav className="space-y-4 flex-1">
+        <nav className="space-y-4 flex-1 mt-4">
           <button
             onClick={() => {
               setShowLeaderboard(true);
