@@ -103,9 +103,9 @@ export default function Admin() {
       {/* SIDEBAR */}
       <aside
         className={`fixed top-0 left-0 h-screen w-64 bg-blue-300 z-50 
-          flex flex-col transform transition-transform duration-300 
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-          md:translate-x-0 md:static`}
+    flex flex-col transform transition-transform duration-300 
+    ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
+    md:translate-x-0 md:sticky md:top-0 md:self-start`}
       >
         <div className="flex justify-between items-center p-4 md:hidden">
           <h1 className="font-bold text-black">MENU</h1>
