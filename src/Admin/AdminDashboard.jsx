@@ -357,8 +357,43 @@ export default function Admin() {
   );
 }
 
+// Reusable stepper field: shows current value with − and + buttons, plus a typed input
+function StepperField({ label, value, onChange, min = 0 }) {
+  const num = Number(value) || 0;
+  return (
+    <div className="mb-3">
+      <label className="block text-sm font-semibold mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, num - 1))}
+          className="w-9 h-9 rounded bg-red-400 hover:bg-red-500 text-white font-bold text-lg shadow flex items-center justify-center"
+        >
+          −
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={value}
+          onChange={(e) =>
+            onChange(e.target.value === "" ? "" : e.target.value)
+          }
+          className="w-full p-2 border-2 border-black rounded bg-white text-black text-center font-bold"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(num + 1)}
+          className="w-9 h-9 rounded bg-green-500 hover:bg-green-600 text-white font-bold text-lg shadow flex items-center justify-center"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConfigPanel({ totalMatches, updateTotalMatches }) {
-  const [value, setValue] = useState(totalMatches ?? "");
+  const [value, setValue] = useState(totalMatches ?? 0);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
@@ -384,14 +419,15 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
       <label className="block text-black font-semibold mb-2">
         Total Matches Played: {totalMatches}
       </label>
-      <input
-        type="text"
-        inputMode="numeric"
+
+      {/* Stepper for total matches */}
+      <StepperField
+        label="Set Total Matches"
         value={value}
-        onChange={(e) => setValue(e.target.value === "" ? "" : e.target.value)}
-        className="w-full border-2 border-black rounded-lg px-4 py-3 mb-4 bg-white text-black"
-        placeholder="Enter total matches"
+        onChange={setValue}
+        min={0}
       />
+
       <button
         onClick={handleSave}
         disabled={loading}
@@ -575,11 +611,11 @@ function AddPlayerForm({ addPlayer }) {
 function EditModal({ player, updatePlayer, onClose, totalMatches }) {
   const [form, setForm] = useState({
     ...player,
-    goals: player.goals ?? "",
-    assists: player.assists ?? "",
-    played: player.played ?? "",
-    yellowCards: player.yellowCards ?? "",
-    redCards: player.redCards ?? "",
+    goals: player.goals ?? 0,
+    assists: player.assists ?? 0,
+    played: player.played ?? 0,
+    yellowCards: player.yellowCards ?? 0,
+    redCards: player.redCards ?? 0,
     paid: player.paid ?? 0,
   });
 
@@ -638,8 +674,8 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
     }
   };
 
-  const fields = [
-    { key: "name", label: "Player Name" },
+  // Stepper fields config
+  const stepperFields = [
     { key: "goals", label: "⚽ Goals Scored" },
     { key: "assists", label: "🅰️ Assists" },
     { key: "played", label: "📅 Matches Played" },
@@ -692,18 +728,28 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           </div>
         </div>
 
-        {/* Standard fields */}
-        {fields.map(({ key, label }) => (
-          <div key={key} className="mb-3">
-            <label className="block text-sm font-semibold mb-1">{label}</label>
-            <input
-              type="text"
-              inputMode={key === "name" ? "text" : "numeric"}
-              value={form[key]}
-              onChange={(e) => handleChange(key, e.target.value)}
-              className="w-full p-2 border-2 border-black rounded bg-white"
-            />
-          </div>
+        {/* Player Name (plain text input, no stepper) */}
+        <div className="mb-3">
+          <label className="block text-sm font-semibold mb-1">
+            Player Name
+          </label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            className="w-full p-2 border-2 border-black rounded bg-white"
+          />
+        </div>
+
+        {/* Stepper fields */}
+        {stepperFields.map(({ key, label }) => (
+          <StepperField
+            key={key}
+            label={label}
+            value={form[key]}
+            onChange={(val) => handleChange(key, val)}
+            min={0}
+          />
         ))}
 
         {/* Payment section */}
