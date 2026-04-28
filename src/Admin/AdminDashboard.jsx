@@ -337,10 +337,13 @@ export default function Admin() {
 
         {/* CONFIG */}
         {active === "config" && (
-          <ConfigPanel
-            totalMatches={totalMatches}
-            updateTotalMatches={updateTotalMatches}
-          />
+          <div className="flex flex-wrap gap-4">
+            <ConfigPanel
+              totalMatches={totalMatches}
+              updateTotalMatches={updateTotalMatches}
+            />
+            <ResetSeasonCard players={players} updatePlayer={updatePlayer} />
+          </div>
         )}
 
         {/* EDIT MODAL */}
@@ -504,6 +507,153 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
         </div>
       )}
     </div>
+  );
+}
+
+// NEW: Reset Season Card
+function ResetSeasonCard({ players, updatePlayer }) {
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState(null);
+
+  const handleReset = async () => {
+    setLoading(true);
+    setAlert(null);
+    try {
+      await Promise.all(
+        players.map((p) => {
+          const formData = new FormData();
+          formData.append("name", p.name);
+          formData.append("goals", 0);
+          formData.append("assists", 0);
+          formData.append("played", 0);
+          formData.append("yellowCards", 0);
+          formData.append("redCards", 0);
+          formData.append("paid", 0);
+          return fetch(`${API_URL}/api/players/${p._id}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: formData,
+          })
+            .then((res) => {
+              if (!res.ok) throw new Error("Server error");
+              return res.json();
+            })
+            .then((updated) => updatePlayer(updated));
+        }),
+      );
+      setAlert({
+        type: "success",
+        message: "✓ New season started! All stats reset.",
+      });
+      setConfirmReset(false);
+    } catch (err) {
+      setAlert({ type: "error", message: "✕ Reset failed. Try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Confirm Modal */}
+      {confirmReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md px-4">
+          <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl p-6 w-full max-w-sm shadow-xl text-black">
+            <h2 className="font-bold text-lg mb-2">🔄 Start New Season?</h2>
+            <p className="mb-2 text-sm">
+              This will reset <strong>ALL players'</strong> stats to zero:
+            </p>
+            <ul className="text-sm mb-4 space-y-1 bg-white/30 rounded-lg p-3">
+              <li>⚽ Goals → 0</li>
+              <li>🅰️ Assists → 0</li>
+              <li>📅 Matches Played → 0</li>
+              <li>🟨 Yellow Cards → 0</li>
+              <li>🟥 Red Cards → 0</li>
+              <li>💰 Paid → 0 TL</li>
+            </ul>
+            <p className="text-sm font-bold text-red-700 mb-4">
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                disabled={loading}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg shadow"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    Resetting...
+                  </span>
+                ) : (
+                  "Yes, New Season"
+                )}
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 rounded-lg shadow"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl p-6 max-w-sm mt-6">
+        <h2 className="font-bold text-black text-lg mb-4">🔄 New Season</h2>
+        <p className="text-black text-sm mb-4">
+          Reset every player's goals, assists, attendance, cards, and payments
+          back to zero. Use this at the start of a fresh season.
+        </p>
+        <div className="bg-white/30 rounded-lg p-3 text-sm text-black mb-4 space-y-1">
+          <p>
+            👥 <strong>{players.length}</strong> players will be reset
+          </p>
+          <p>
+            📋 All stats wiped to <strong>0</strong>
+          </p>
+          <p>
+            💳 All payments wiped to <strong>0 TL</strong>
+          </p>
+        </div>
+        <button
+          onClick={() => setAlert(null) || setConfirmReset(true)}
+          className="w-full py-3 rounded-lg font-bold shadow-xl bg-red-500 hover:bg-red-600 text-white transition-all duration-200"
+        >
+          Reset All Stats
+        </button>
+        {alert && (
+          <div
+            className={`mt-3 px-4 py-2 rounded-lg text-sm font-semibold text-center border shadow
+            ${alert.type === "success" ? "bg-green-100 border-green-400 text-green-700" : "bg-red-100 border-red-400 text-red-700"}`}
+          >
+            {alert.message}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
