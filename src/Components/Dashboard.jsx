@@ -248,9 +248,9 @@ export default function PlayerDashboard() {
               <span className="font-bold text-black text-lg">TOTAL POINTS</span>
               <ChartNoAxesCombined className="text-black" />
             </div>
-            <div className="block">
+            {/* <div className="block">
             <p className="text-sm font-bold animate-pulse [animation-duration:0.7s] ">POINT COUNTING STARTS JULY 1 2026</p>
-            </div>
+            </div> */}
             <p className="text-4xl sm:text-5xl font-extrabold text-black">
               {player ? Math.round(getPoints(player)) : 0}
             </p>
