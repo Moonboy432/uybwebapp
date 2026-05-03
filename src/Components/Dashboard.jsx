@@ -27,13 +27,16 @@ export default function PlayerDashboard() {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
     const debt = getDebt(p);
     const zeroDebtBonus = debt <= 0 ? 2 : 0;
+    const cleanSheetBonus =
+      p.position === "Goalkeeper" ? (p.cleanSheets ?? 0) * 2 : 0;
     return (
       p.goals * 3 +
       p.assists * 2 +
       attendance -
       (p.yellowCards ?? 0) * 1 -
       (p.redCards ?? 0) * 3 +
-      zeroDebtBonus
+      zeroDebtBonus +
+      cleanSheetBonus
     );
   };
 
@@ -70,7 +73,6 @@ export default function PlayerDashboard() {
       {/* Full Page Leaderboard Overlay */}
       {showLeaderboard && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          {/* FIX 4: reduced base padding p-4, larger on sm+ */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-6">
               <img
@@ -134,6 +136,12 @@ export default function PlayerDashboard() {
                         🟥 -{(p.redCards ?? 0) * 3}
                       </span>
                     )}
+                    {p.position === "Goalkeeper" &&
+                      (p.cleanSheets ?? 0) > 0 && (
+                        <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                          🧤 +{(p.cleanSheets ?? 0) * 2}
+                        </span>
+                      )}
                     <span className="font-bold text-black">{points} pts</span>
                   </div>
                 );
@@ -160,7 +168,7 @@ export default function PlayerDashboard() {
         />
       )}
 
-      {/* Sidebar — FIX 2: w-44 on mobile, w-52 on sm+ */}
+      {/* Sidebar */}
       <aside
         className={`fixed md:static z-50 top-0 left-0 min-h-full w-44 sm:w-52 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
@@ -204,7 +212,7 @@ export default function PlayerDashboard() {
         </div>
       </aside>
 
-      {/* Main Content — FIX 3: p-4 base, p-6 on sm+ */}
+      {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6 w-full">
         {/* Top bar mobile menu */}
         <div className="flex items-center gap-4 mb-6">
@@ -240,23 +248,20 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {/* Stats Cards — FIX 5: gap-4 base, gap-6 on sm+ */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          {/* 1. Total Points — FIX 1a: p-4 base, p-6 on sm+; text-4xl base, text-5xl on sm+ */}
+          {/* 1. Total Points */}
           <div className="md:col-span-2 bg-yellow-400 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
               <span className="font-bold text-black text-lg">TOTAL POINTS</span>
               <ChartNoAxesCombined className="text-black" />
             </div>
-            {/* <div className="block">
-            <p className="text-sm font-bold animate-pulse [animation-duration:0.7s] ">POINT COUNTING STARTS JULY 1 2026</p>
-            </div> */}
             <p className="text-4xl sm:text-5xl font-extrabold text-black">
               {player ? Math.round(getPoints(player)) : 0}
             </p>
           </div>
 
-          {/* 2. Goals & Assists — FIX 1b: p-4 base, p-6 on sm+; text-3xl base, text-4xl on sm+ */}
+          {/* 2. Goals & Assists */}
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">GOALS & ASSISTS</span>
@@ -279,7 +284,7 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 3. Yellow & Red Cards — FIX 1c */}
+          {/* 3. Yellow & Red Cards */}
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">CARDS</span>
@@ -304,7 +309,25 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 4. Attendance & Zero Debt Bonus — FIX 1d */}
+          {/* 4. Clean Sheets — Goalkeeper only */}
+          {player?.position === "Goalkeeper" && (
+            <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
+              <div className="flex justify-between mb-4">
+                <span className="font-bold text-black">CLEAN SHEETS</span>
+                <span className="text-lg">🧤</span>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl sm:text-4xl font-extrabold text-black">
+                  {player?.cleanSheets ?? 0}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  🧤 Clean Sheets (+2 each)
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 5. Attendance & Zero Debt Bonus */}
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">ATTENDANCE & BONUS</span>
@@ -329,7 +352,7 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          {/* 5. Debt — FIX 1e */}
+          {/* 6. Debt */}
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
               <span className="font-bold text-black">DEBT</span>

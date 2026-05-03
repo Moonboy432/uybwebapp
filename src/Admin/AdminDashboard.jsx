@@ -6,8 +6,6 @@ import API_URL from "../config";
 
 const MATCH_COST = 200; // TL per match attended
 
-// Debt is dynamic: (matches played × 200) - total paid
-// Negative = surplus/credit, Positive = owes money
 const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
 
 export default function Admin() {
@@ -25,18 +23,20 @@ export default function Admin() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const navigate = useNavigate();
 
-  // Points formula uses dynamic debt
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
     const debt = getDebt(p);
-    const zeroDebtBonus = debt <= 0 ? 2 : 0; // surplus also counts as zero debt
+    const zeroDebtBonus = debt <= 0 ? 2 : 0;
+    const cleanSheetBonus =
+      p.position === "Goalkeeper" ? (p.cleanSheets ?? 0) * 2 : 0;
     return (
       p.goals * 3 +
       p.assists * 2 +
       attendance -
       (p.yellowCards ?? 0) * 1 -
       (p.redCards ?? 0) * 3 +
-      zeroDebtBonus
+      zeroDebtBonus +
+      cleanSheetBonus
     );
   };
 
@@ -51,7 +51,6 @@ export default function Admin() {
     </div>
   );
 
-  // Total debt across all players (sum of positives only)
   const totalDebt = players.reduce((s, p) => {
     const d = getDebt(p);
     return s + (d > 0 ? d : 0);
@@ -169,7 +168,7 @@ export default function Admin() {
         {/* PLAYER TABLE */}
         {active === "view" && (
           <div className="overflow-x-auto">
-            <table className="min-w-[1000px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
+            <table className="min-w-[1100px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
               <thead>
                 <tr>
                   <th className="p-2 text-black font-bold">NO</th>
@@ -180,8 +179,8 @@ export default function Admin() {
                   <th className="p-2 text-black font-bold">ATTENDANCE</th>
                   <th className="p-2 text-black font-bold">🟨</th>
                   <th className="p-2 text-black font-bold">🟥</th>
+                  <th className="p-2 text-black font-bold">🧤 CS</th>
                   <th className="p-2 text-black font-bold">🎁 BONUS</th>
-                  {/* New columns */}
                   <th className="p-2 text-black font-bold">OWED</th>
                   <th className="p-2 text-black font-bold">PAID</th>
                   <th className="p-2 text-black font-bold">BALANCE</th>
@@ -198,8 +197,8 @@ export default function Admin() {
                   const points = Math.round(getPoints(p));
                   const owed = (p.played ?? 0) * MATCH_COST;
                   const paid = p.paid ?? 0;
-                  // balance: negative = owes, positive = credit
                   const balance = paid - owed;
+                  const isGK = p.position === "Goalkeeper";
 
                   return (
                     <tr
@@ -225,7 +224,14 @@ export default function Admin() {
                           </div>
                         )}
                       </td>
-                      <td className="p-2 text-black font-bold">{p.name}</td>
+                      <td className="p-2 text-black font-bold">
+                        {p.name}
+                        {isGK && (
+                          <span className="ml-1 text-xs bg-blue-700 text-white px-1.5 py-0.5 rounded-full">
+                            GK
+                          </span>
+                        )}
+                      </td>
                       <td className="p-2 text-black font-bold">{p.goals}</td>
                       <td className="p-2 text-black font-bold">{p.assists}</td>
                       <td className="p-2 text-black font-bold">
@@ -237,16 +243,17 @@ export default function Admin() {
                       <td className="p-2 text-black font-bold">
                         {p.redCards ?? 0}
                       </td>
+                      {/* Clean Sheets — only meaningful for GKs */}
+                      <td className="p-2 text-black font-bold">
+                        {isGK ? (p.cleanSheets ?? 0) : "—"}
+                      </td>
                       <td className="p-2 text-black font-bold">
                         {zeroDebtBonus > 0 ? "+2" : "-"}
                       </td>
-                      {/* Owed = matches × 200 */}
                       <td className="p-2 text-black font-bold">{owed} TL</td>
-                      {/* Paid — editable via modal */}
                       <td className="p-2 text-green-800 font-bold">
                         {paid} TL
                       </td>
-                      {/* Balance: green = credit/surplus, red = owes */}
                       <td
                         className={`p-2 font-extrabold ${
                           balance >= 0 ? "text-green-700" : "text-red-700"
@@ -284,6 +291,7 @@ export default function Admin() {
             {sorted.map((p, i) => {
               const points = Math.round(getPoints(p));
               const debt = getDebt(p);
+              const isGK = p.position === "Goalkeeper";
               return (
                 <div
                   key={p._id}
@@ -307,7 +315,6 @@ export default function Admin() {
                     </div>
                   )}
                   <span className="flex-1 font-bold">{p.name}</span>
-                  {/* Show surplus badge if they overpaid */}
                   {debt < 0 && (
                     <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
                       💰 +{Math.abs(debt)} TL credit
@@ -326,6 +333,11 @@ export default function Admin() {
                   {(p.redCards ?? 0) > 0 && (
                     <span className="text-xs bg-red-200 text-red-800 font-bold px-2 py-0.5 rounded-full">
                       🟥 -{(p.redCards ?? 0) * 3}
+                    </span>
+                  )}
+                  {isGK && (p.cleanSheets ?? 0) > 0 && (
+                    <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                      🧤 +{(p.cleanSheets ?? 0) * 2}
                     </span>
                   )}
                   <span className="font-bold">{points} pts</span>
@@ -360,7 +372,6 @@ export default function Admin() {
   );
 }
 
-// Reusable stepper field: shows current value with − and + buttons, plus a typed input
 function StepperField({ label, value, onChange, min = 0 }) {
   const num = Number(value) || 0;
   return (
@@ -423,7 +434,6 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
         Total Matches Played: {totalMatches}
       </label>
 
-      {/* Stepper for total matches */}
       <StepperField
         label="Set Total Matches"
         value={value}
@@ -480,6 +490,9 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
           🎁 Zero / Cleared Debt = <strong>+2 pts</strong>
         </p>
         <p>
+          🧤 Clean Sheet (GK only) = <strong>+2 pts each</strong>
+        </p>
+        <p>
           🟨 Yellow Card = <strong>-1 pt each</strong>
         </p>
         <p>
@@ -510,7 +523,6 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
   );
 }
 
-// NEW: Reset Season Card
 function ResetSeasonCard({ players, updatePlayer }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -530,6 +542,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
           formData.append("yellowCards", 0);
           formData.append("redCards", 0);
           formData.append("paid", 0);
+          formData.append("cleanSheets", 0);
           return fetch(`${API_URL}/api/players/${p._id}`, {
             method: "PUT",
             headers: {
@@ -558,7 +571,6 @@ function ResetSeasonCard({ players, updatePlayer }) {
 
   return (
     <>
-      {/* Confirm Modal */}
       {confirmReset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md px-4">
           <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl p-6 w-full max-w-sm shadow-xl text-black">
@@ -572,6 +584,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
               <li>📅 Matches Played → 0</li>
               <li>🟨 Yellow Cards → 0</li>
               <li>🟥 Red Cards → 0</li>
+              <li>🧤 Clean Sheets → 0</li>
               <li>💰 Paid → 0 TL</li>
             </ul>
             <p className="text-sm font-bold text-red-700 mb-4">
@@ -624,8 +637,8 @@ function ResetSeasonCard({ players, updatePlayer }) {
       <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl p-6 max-w-sm mt-6">
         <h2 className="font-bold text-black text-lg mb-4">🔄 New Season</h2>
         <p className="text-black text-sm mb-4">
-          Reset every player's goals, assists, attendance, cards, and payments
-          back to zero. Use this at the start of a fresh season.
+          Reset every player's goals, assists, attendance, cards, clean sheets,
+          and payments back to zero. Use this at the start of a fresh season.
         </p>
         <div className="bg-white/30 rounded-lg p-3 text-sm text-black mb-4 space-y-1">
           <p>
@@ -659,6 +672,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
 
 function AddPlayerForm({ addPlayer }) {
   const [name, setName] = useState("");
+  const [position, setPosition] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
@@ -673,6 +687,7 @@ function AddPlayerForm({ addPlayer }) {
     try {
       const formData = new FormData();
       formData.append("name", name);
+      if (position) formData.append("position", position);
       if (image) formData.append("avatar", image);
 
       const res = await fetch(`${API_URL}/api/players`, {
@@ -686,6 +701,7 @@ function AddPlayerForm({ addPlayer }) {
       const newPlayer = await res.json();
       addPlayer(newPlayer);
       setName("");
+      setPosition("");
       setImage(null);
       setAlert({ type: "success", message: "✓ Player added successfully!" });
     } catch (err) {
@@ -706,6 +722,17 @@ function AddPlayerForm({ addPlayer }) {
         className="w-full h-20 p-2 mb-2 text-black rounded border-2 border-black bg-white"
         placeholder="Enter New Player Name"
       />
+      <select
+        value={position}
+        onChange={(e) => setPosition(e.target.value)}
+        className="w-full p-2 mb-2 text-black rounded border-2 border-black bg-white"
+      >
+        <option value="">Select Position (optional)</option>
+        <option value="Goalkeeper">Goalkeeper</option>
+        <option value="Defender">Defender</option>
+        <option value="Midfielder">Midfielder</option>
+        <option value="Forward">Forward</option>
+      </select>
       <input
         type="file"
         accept="image/*"
@@ -757,7 +784,6 @@ function AddPlayerForm({ addPlayer }) {
   );
 }
 
-// EditModal — paid is accumulated via +Add Payment, never overwritten manually
 function EditModal({ player, updatePlayer, onClose, totalMatches }) {
   const [form, setForm] = useState({
     ...player,
@@ -767,12 +793,16 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
     yellowCards: player.yellowCards ?? 0,
     redCards: player.redCards ?? 0,
     paid: player.paid ?? 0,
+    cleanSheets: player.cleanSheets ?? 0,
+    position: player.position ?? "",
   });
 
   const [payment, setPayment] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+
+  const isGK = form.position === "Goalkeeper";
 
   const handleChange = (key, value) => {
     setForm({ ...form, [key]: value === "" ? "" : value });
@@ -800,6 +830,8 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
       formData.append("yellowCards", Number(form.yellowCards) || 0);
       formData.append("redCards", Number(form.redCards) || 0);
       formData.append("paid", Number(form.paid) || 0);
+      formData.append("cleanSheets", Number(form.cleanSheets) || 0);
+      formData.append("position", form.position || "");
       if (image) formData.append("avatar", image);
 
       const res = await fetch(`${API_URL}/api/players/${form._id}`, {
@@ -824,7 +856,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
     }
   };
 
-  // Stepper fields config
   const stepperFields = [
     { key: "goals", label: "⚽ Goals Scored" },
     { key: "assists", label: "🅰️ Assists" },
@@ -878,7 +909,7 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           </div>
         </div>
 
-        {/* Player Name (plain text input, no stepper) */}
+        {/* Player Name */}
         <div className="mb-3">
           <label className="block text-sm font-semibold mb-1">
             Player Name
@@ -891,6 +922,22 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           />
         </div>
 
+        {/* Position */}
+        <div className="mb-3">
+          <label className="block text-sm font-semibold mb-1">Position</label>
+          <select
+            value={form.position}
+            onChange={(e) => handleChange("position", e.target.value)}
+            className="w-full p-2 border-2 border-black rounded bg-white text-black font-bold"
+          >
+            <option value="">Select Position</option>
+            <option value="Goalkeeper">Goalkeeper</option>
+            <option value="Defender">Defender</option>
+            <option value="Midfielder">Midfielder</option>
+            <option value="Forward">Forward</option>
+          </select>
+        </div>
+
         {/* Stepper fields */}
         {stepperFields.map(({ key, label }) => (
           <StepperField
@@ -901,6 +948,16 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
             min={0}
           />
         ))}
+
+        {/* Clean Sheets — only shown for Goalkeepers */}
+        {isGK && (
+          <StepperField
+            label="🧤 Clean Sheets (+2 pts each)"
+            value={form.cleanSheets}
+            onChange={(val) => handleChange("cleanSheets", val)}
+            min={0}
+          />
+        )}
 
         {/* Payment section */}
         <div className="bg-white/40 rounded-lg p-3 mb-3 space-y-2">
