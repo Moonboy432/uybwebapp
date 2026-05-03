@@ -320,9 +320,7 @@ export default function PlayerDashboard() {
                 <p className="text-3xl sm:text-4xl font-extrabold text-black">
                   {player?.cleanSheets ?? 0}
                 </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  🧤 Clean Sheets (+2 each)
-                </p>
+              
               </div>
             </div>
           )}
