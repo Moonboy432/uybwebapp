@@ -68,6 +68,63 @@ export default function PlayerDashboard() {
   const playerPaid = player?.paid ?? 0;
   const playerBalance = playerPaid - playerOwed;
 
+  // Add this block right before the main return statement
+  if (player && getDebt(player) >= 400) {
+    return (
+      <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-xl">
+          {/* Lock icon */}
+          <div className="w-20 h-20 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center mx-auto mb-6">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+
+          <h2 className="text-xl font-bold text-black mb-2">
+            Dashboard Locked
+          </h2>
+          <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+            Your account has an outstanding balance. Please settle your debt to
+            regain access.
+          </p>
+
+          {/* Debt amount */}
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+            <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-1">
+              Amount Owed
+            </p>
+            <p className="text-4xl font-extrabold text-red-500">
+              {getDebt(player)} TL
+            </p>
+          </div>
+
+          <p className="text-sm text-gray-500 mb-6">
+            Contact your team admin to record your payment.
+          </p>
+
+          <Link to="/home">
+            <button
+              onClick={() => localStorage.removeItem("token")}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all"
+            >
+              Log Out
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
       {/* Full Page Leaderboard Overlay */}
@@ -320,7 +377,6 @@ export default function PlayerDashboard() {
                 <p className="text-3xl sm:text-4xl font-extrabold text-black">
                   {player?.cleanSheets ?? 0}
                 </p>
-              
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, CheckCircle } from "lucide-react";
 import API_URL from "../config";
 
 export default function Signup() {
@@ -17,6 +17,7 @@ export default function Signup() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -57,8 +58,8 @@ export default function Signup() {
         confirmPassword: "",
       });
 
-      alert("Account created successfully! Please log in.");
-      navigate("/login");
+      setSuccess(true);
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -66,6 +67,53 @@ export default function Signup() {
       setLoading(false);
     }
   };
+
+  // Success screen
+  if (success) {
+    return (
+      <section className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-blue-400 to-blue-300 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+          {/* Animated checkmark circle */}
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 rounded-full bg-yellow-400 flex items-center justify-center shadow-lg animate-bounce">
+              <CheckCircle size={48} className="text-black" />
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            You're in the squad! 🎉
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Your account has been created successfully. Redirecting you to
+            login...
+          </p>
+
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-6 overflow-hidden">
+            <div
+              className="h-2 bg-yellow-400 rounded-full"
+              style={{
+                animation: "fillBar 3s linear forwards",
+              }}
+            />
+          </div>
+
+          <style>{`
+            @keyframes fillBar {
+              from { width: 0%; }
+              to { width: 100%; }
+            }
+          `}</style>
+
+          <Link to="/login">
+            <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">
+              Go to Login now
+            </button>
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-blue-400 to-blue-300 px-4 sm:px-6 pt-16 pb-10">
@@ -169,7 +217,6 @@ export default function Signup() {
               required
               className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none rounded-lg px-4 py-3 pr-12 text-sm sm:text-base"
             />
-
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -190,7 +237,6 @@ export default function Signup() {
               required
               className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none rounded-lg px-4 py-3 pr-12 text-sm sm:text-base"
             />
-
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -204,9 +250,35 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50"
+            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? "Creating Account..." : "Join the Squad"}
+            {loading ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-black"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                Creating Account...
+              </>
+            ) : (
+              "Join the Squad"
+            )}
           </button>
 
           {/* Login Link */}
