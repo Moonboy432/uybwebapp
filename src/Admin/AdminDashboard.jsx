@@ -805,7 +805,7 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
   const isGK = form.position === "Goalkeeper";
 
   const handleChange = (key, value) => {
-    setForm({ ...form, [key]: value === "" ? "" : value });
+    setForm((prev) => ({ ...prev, [key]: value === "" ? "" : value }));
   };
 
   const handleAddPayment = () => {
