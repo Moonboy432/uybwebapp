@@ -113,24 +113,22 @@ export default function PlayerDashboard() {
     if (arrow === "up")
       return (
         <span
-          className={`flex mx-0 items-center text-green-600 font-bold text-xs shrink-0 ${className}`}
+          className={`flex items-center gap-0.5 text-green-600 font-bold text-xs shrink-0 mx-0 ${className}`}
         >
-          <ArrowUp size={5} strokeWidth={3} />
-          {diff}
+          <ArrowUp size={12} strokeWidth={3} />
         </span>
       );
     if (arrow === "down")
       return (
         <span
-          className={`flex mx-0 items-center text-red-500 font-bold text-xs shrink-0 ${className}`}
+          className={`flex items-center gap-0.5 text-red-500 font-bold text-xs shrink-0 mx-0 ${className}`}
         >
-          <ArrowDown size={5} strokeWidth={3} />
-          {diff}
+          <ArrowDown size={12} strokeWidth={3} />
         </span>
       );
     return (
-      <span className={` shrink-0 flex mx-0 justify-center ${className}`}>
-        <Minus size={5} className="" strokeWidth={2} />
+      <span className={` shrink-0 flex justify-center mx-0 ${className}`}>
+        <Minus size={12} className="text-gray-400" strokeWidth={2} />
       </span>
     );
   };
@@ -362,7 +360,7 @@ export default function PlayerDashboard() {
                   <p className="text-sm font-bold text-black">
                     #{rank} on the leaderboard
                   </p>
-                  <RankBadge playerId={vp._id} currentRank={rank} className="" />
+                  <RankBadge playerId={vp._id} currentRank={rank} />
                 </div>
               </div>
             </div>
@@ -383,17 +381,15 @@ export default function PlayerDashboard() {
       {showLeaderboard && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="flex items-center justify-center gap-3 mb-1">
-              <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
+            <div className="flex items-center justify-center gap-3 mb-6">
               <img
                 src="/uybfclogo.png"
                 alt="Club Logo"
                 className="w-20 h-20 object-contain"
               />
-              <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
-            </div>
-            <div className="text-center mb-2 text-xs font-bold">
-             TAP ON ANY PLAYER TO VIEW THEIR STATS
+              <h2 className="text-2xl font-bold text-black text-center">
+                🏆 Full Leaderboard
+              </h2>
             </div>
 
             <div className="max-w-lg mx-auto space-y-3">
@@ -411,10 +407,10 @@ export default function PlayerDashboard() {
                     className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl w-full text-left transition-transform active:scale-95
                       ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
                   >
-                    <span className="text-xs font-bold w-6 text-black shrink-0">
+                    <span className="text-lg font-bold w-6 text-black shrink-0">
                       {i + 1}
                     </span>
-                    <RankBadge playerId={p._id} currentRank={i + 1} className="m" />
+                    <RankBadge playerId={p._id} currentRank={i + 1} />
                     {p.avatar ? (
                       <img
                         src={p.avatar}
@@ -431,10 +427,10 @@ export default function PlayerDashboard() {
                           .toUpperCase()}
                       </div>
                     )}
-                    <span className="flex-1 font-bold text-black text-xs">
+                    <span className="flex-1 font-bold text-black">
                       {p.name}
                       {isMe && (
-                        <span className="text-xs font-normal"> (you)</span>
+                        <span className="text-sm font-normal"> (you)</span>
                       )}
                     </span>
                     {debt <= 0 && (
