@@ -381,15 +381,17 @@ export default function PlayerDashboard() {
       {showLeaderboard && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
               <img
                 src="/uybfclogo.png"
                 alt="Club Logo"
                 className="w-20 h-20 object-contain"
               />
-              <h2 className="text-2xl font-bold text-black text-center">
-                🏆 Full Leaderboard
-              </h2>
+              <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
+            </div>
+            <div className="text-center text-xs font-bold mb-6 animate-bounce">
+              TAP ON ANY PLAYER TO VIEW THEIR STATS
             </div>
 
             <div className="max-w-lg mx-auto space-y-3">
@@ -433,12 +435,12 @@ export default function PlayerDashboard() {
                         <span className="text-sm font-normal"> (you)</span>
                       )}
                     </span>
-                    {debt <= 0 && (
+                    {/* {debt <= 0 && (
                       <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full shrink-0">
                         🎁 +2
                       </span>
-                    )}
-                    {(p.yellowCards ?? 0) > 0 && (
+                    )} */}
+                    {/* {(p.yellowCards ?? 0) > 0 && (
                       <span className="text-xs bg-yellow-200 text-yellow-800 font-bold px-2 py-0.5 rounded-full shrink-0">
                         🟨 -{p.yellowCards}
                       </span>
@@ -447,13 +449,13 @@ export default function PlayerDashboard() {
                       <span className="text-xs bg-red-200 text-red-800 font-bold px-2 py-0.5 rounded-full shrink-0">
                         🟥 -{(p.redCards ?? 0) * 3}
                       </span>
-                    )}
-                    {p.position === "Goalkeeper" &&
+                    )} */}
+                    {/* {p.position === "Goalkeeper" &&
                       (p.cleanSheets ?? 0) > 0 && (
                         <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full shrink-0">
                           🧤 +{(p.cleanSheets ?? 0) * 2}
                         </span>
-                      )}
+                      )} */}
                     <span className="font-bold text-black shrink-0">
                       {points} pts
                     </span>
