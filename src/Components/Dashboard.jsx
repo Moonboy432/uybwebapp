@@ -13,7 +13,6 @@ import {
   Info,
   Volleyball,
   Award,
-  HandFist,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
@@ -430,8 +429,8 @@ export default function PlayerDashboard() {
 
       {/* Full Page League Leaderboard Overlay */}
       {showLeaderboard && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
               <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
               <img
@@ -492,23 +491,23 @@ export default function PlayerDashboard() {
                 );
               })}
             </div>
-          </div>
 
-          <div className="p-6 flex justify-center">
-            <button
-              onClick={() => setShowLeaderboard(false)}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
-            >
-              <X size={18} /> Close Leaderboard
-            </button>
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Full Page Goals Leaderboard Overlay */}
       {showGoalsLeaderboard && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
               <h2 className="text-2xl font-bold text-black text-center">⚽</h2>
               <img
@@ -540,23 +539,23 @@ export default function PlayerDashboard() {
                 />
               ))}
             </div>
-          </div>
 
-          <div className="p-6 flex justify-center">
-            <button
-              onClick={() => setShowGoalsLeaderboard(false)}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
-            >
-              <X size={18} /> Close Leaderboard
-            </button>
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowGoalsLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Full Page Assists Leaderboard Overlay */}
       {showAssistsLeaderboard && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
               <h2 className="text-2xl font-bold text-black text-center">🅰️</h2>
               <img
@@ -588,15 +587,15 @@ export default function PlayerDashboard() {
                 />
               ))}
             </div>
-          </div>
 
-          <div className="p-6 flex justify-center">
-            <button
-              onClick={() => setShowAssistsLeaderboard(false)}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
-            >
-              <X size={18} /> Close Leaderboard
-            </button>
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowAssistsLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -657,7 +656,7 @@ export default function PlayerDashboard() {
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
           >
-            <HandFist size={20} /> <p className="font-bold">Assists</p>
+            <Award size={20} /> <p className="font-bold">Assists</p>
           </button>
         </nav>
 
