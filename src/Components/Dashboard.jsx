@@ -11,6 +11,8 @@ import {
   ArrowDown,
   Minus,
   Info,
+  Volleyball,
+  Award,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
@@ -35,6 +37,8 @@ export default function PlayerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showGoalsLeaderboard, setShowGoalsLeaderboard] = useState(false);
+  const [showAssistsLeaderboard, setShowAssistsLeaderboard] = useState(false);
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -58,6 +62,12 @@ export default function PlayerDashboard() {
   };
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
+  const sortedByGoals = [...players].sort(
+    (a, b) => (b.goals ?? 0) - (a.goals ?? 0),
+  );
+  const sortedByAssists = [...players].sort(
+    (a, b) => (b.assists ?? 0) - (a.assists ?? 0),
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -372,15 +382,55 @@ export default function PlayerDashboard() {
     );
   };
 
+  // ── Reusable player row for Goals / Assists leaderboards ─────────────────
+  const StatLeaderboardRow = ({ p, i, statValue, statLabel, onSelect }) => {
+    const isMe = p._id === player?._id;
+    return (
+      <button
+        key={p._id}
+        onClick={() => onSelect(p)}
+        className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl w-full text-left transition-transform active:scale-95
+          ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
+      >
+        <span className="text-lg font-bold w-6 text-black shrink-0">
+          {i + 1}
+        </span>
+        {p.avatar ? (
+          <img
+            src={p.avatar}
+            alt={p.name}
+            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow shrink-0">
+            {p.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
+          </div>
+        )}
+        <span className="flex-1 font-bold text-black">
+          {p.name}
+          {isMe && <span className="text-sm font-normal"> (you)</span>}
+        </span>
+        <span className="font-bold text-black shrink-0">
+          {statValue} {statLabel}
+        </span>
+      </button>
+    );
+  };
+
   // ── Main render ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
       <ProfileOverlay />
 
-      {/* Full Page Leaderboard Overlay */}
+      {/* Full Page League Leaderboard Overlay */}
       {showLeaderboard && (
-        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
               <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
               <img
@@ -391,13 +441,12 @@ export default function PlayerDashboard() {
               <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
             </div>
             <div className="text-center text-xs font-bold mb-6 animate-bounce">
-              TAP ON ANY PLAYER TO VIEW THEIR STATS
+              TAP ON ANY PLAYER'S IMAGE TO VIEW THEIR STATS
             </div>
 
             <div className="max-w-lg mx-auto space-y-3">
               {sorted.map((p, i) => {
                 const points = Math.round(getPoints(p));
-                const debt = getDebt(p);
                 const isMe = p._id === player?._id;
                 return (
                   <button
@@ -435,27 +484,6 @@ export default function PlayerDashboard() {
                         <span className="text-sm font-normal"> (you)</span>
                       )}
                     </span>
-                    {/* {debt <= 0 && (
-                      <span className="text-xs bg-green-200 text-green-800 font-bold px-2 py-0.5 rounded-full shrink-0">
-                        🎁 +2
-                      </span>
-                    )} */}
-                    {/* {(p.yellowCards ?? 0) > 0 && (
-                      <span className="text-xs bg-yellow-200 text-yellow-800 font-bold px-2 py-0.5 rounded-full shrink-0">
-                        🟨 -{p.yellowCards}
-                      </span>
-                    )}
-                    {(p.redCards ?? 0) > 0 && (
-                      <span className="text-xs bg-red-200 text-red-800 font-bold px-2 py-0.5 rounded-full shrink-0">
-                        🟥 -{(p.redCards ?? 0) * 3}
-                      </span>
-                    )} */}
-                    {/* {p.position === "Goalkeeper" &&
-                      (p.cleanSheets ?? 0) > 0 && (
-                        <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full shrink-0">
-                          🧤 +{(p.cleanSheets ?? 0) * 2}
-                        </span>
-                      )} */}
                     <span className="font-bold text-black shrink-0">
                       {points} pts
                     </span>
@@ -463,15 +491,111 @@ export default function PlayerDashboard() {
                 );
               })}
             </div>
-          </div>
 
-          <div className="p-6 flex justify-center">
-            <button
-              onClick={() => setShowLeaderboard(false)}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
-            >
-              <X size={18} /> Close Leaderboard
-            </button>
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Page Goals Leaderboard Overlay */}
+      {showGoalsLeaderboard && (
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <h2 className="text-2xl font-bold text-black text-center">⚽</h2>
+              <img
+                src="/uybfclogo.png"
+                alt="Club Logo"
+                className="w-20 h-20 object-contain"
+              />
+              <h2 className="text-2xl font-bold text-black text-center">⚽</h2>
+            </div>
+            <h2 className="text-center text-xl font-extrabold text-black mb-1">
+              TOP SCORERS
+            </h2>
+            <div className="text-center text-xs font-bold mb-6 animate-bounce">
+              TAP ON ANY PLAYER TO VIEW THEIR STATS
+            </div>
+
+            <div className="max-w-lg mx-auto space-y-3">
+              {sortedByGoals.map((p, i) => (
+                <StatLeaderboardRow
+                  key={p._id}
+                  p={p}
+                  i={i}
+                  statValue={p.goals ?? 0}
+                  statLabel="goals"
+                  onSelect={(p) => {
+                    setViewingPlayer(p);
+                    setShowGoalsLeaderboard(false);
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowGoalsLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Page Assists Leaderboard Overlay */}
+      {showAssistsLeaderboard && (
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <h2 className="text-2xl font-bold text-black text-center">🅰️</h2>
+              <img
+                src="/uybfclogo.png"
+                alt="Club Logo"
+                className="w-20 h-20 object-contain"
+              />
+              <h2 className="text-2xl font-bold text-black text-center">🅰️</h2>
+            </div>
+            <h2 className="text-center text-xl font-extrabold text-black mb-1">
+              TOP ASSISTERS
+            </h2>
+            <div className="text-center text-xs font-bold mb-6 animate-bounce">
+              TAP ON ANY PLAYER TO VIEW THEIR STATS
+            </div>
+
+            <div className="max-w-lg mx-auto space-y-3">
+              {sortedByAssists.map((p, i) => (
+                <StatLeaderboardRow
+                  key={p._id}
+                  p={p}
+                  i={i}
+                  statValue={p.assists ?? 0}
+                  statLabel="assists"
+                  onSelect={(p) => {
+                    setViewingPlayer(p);
+                    setShowAssistsLeaderboard(false);
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowAssistsLeaderboard(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Leaderboard
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -513,6 +637,26 @@ export default function PlayerDashboard() {
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
           >
             <Trophy size={20} /> <p className="font-bold">League</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowGoalsLeaderboard(true);
+              setSidebarOpen(false);
+            }}
+            className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
+          >
+            <Volleyball size={20} /> <p className="font-bold">Goals</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowAssistsLeaderboard(true);
+              setSidebarOpen(false);
+            }}
+            className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
+          >
+            <Award size={20} /> <p className="font-bold">Assists</p>
           </button>
         </nav>
 
@@ -587,9 +731,6 @@ export default function PlayerDashboard() {
                 {showTooltip && (
                   <div className="absolute right-0 top-8 z-10 bg-white text-black text-xs font-medium rounded-xl shadow-xl px-3 py-2 w-48 leading-relaxed">
                     Tap any player's name to view their full stats.
-                    <span className="block mt-1 text-gray-400">
-                      ↑ green = moved up · ↓ red = moved down · — = no change
-                    </span>
                   </div>
                 )}
               </div>
