@@ -178,10 +178,10 @@ export default function Signup() {
             className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none rounded-lg px-4 py-3 text-sm sm:text-base"
           >
             <option value="">Preferred Position</option>
-            <option>Goalkeeper</option>
-            <option>Defender</option>
-            <option>Midfielder</option>
-            <option>Forward</option>
+            <option value="Goalkeeper">Goalkeeper</option>
+            <option value="Defender">Defender</option>
+            <option value="Midfielder">Midfielder</option>
+            <option value="Forward">Forward</option>
           </select>
 
           {/* Phone */}
