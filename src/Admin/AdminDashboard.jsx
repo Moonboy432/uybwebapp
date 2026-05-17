@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pen, Trash } from "lucide-react";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
 
-const MATCH_COST = 200; // TL per match attended
+const MATCH_COST = 200;
 
 const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
 
@@ -21,6 +21,9 @@ export default function Admin() {
   const [selected, setSelected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingAlert, setPendingAlert] = useState(null);
   const navigate = useNavigate();
 
   const getPoints = (p) => {
@@ -42,8 +45,66 @@ export default function Admin() {
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
 
+  // Fetch pending users whenever the approvals tab is opened
+  useEffect(() => {
+    if (active === "approvals") fetchPending();
+  }, [active]);
+
+  const fetchPending = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/pending`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      setPendingUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch pending users", err);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleApprove = async (userId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/approve/${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+      setPendingAlert({
+        type: "success",
+        message: "✓ Player approved and added to the squad!",
+      });
+    } catch (err) {
+      setPendingAlert({ type: "error", message: `✕ ${err.message}` });
+    }
+    setTimeout(() => setPendingAlert(null), 3000);
+  };
+
+  const handleReject = async (userId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/reject/${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+      setPendingAlert({
+        type: "success",
+        message: "✓ Signup request rejected.",
+      });
+    } catch (err) {
+      setPendingAlert({ type: "error", message: `✕ ${err.message}` });
+    }
+    setTimeout(() => setPendingAlert(null), 3000);
+  };
+
   const Card = ({ label, value }) => (
-    <div className="p-4 w-40 h-35 rounded-2xl shadow-xl bg-gradient-to-r from-blue-400 to-blue-300">
+    <div className="p-4 w-70 h-35 rounded-2xl shadow-xl bg-gradient-to-r from-blue-400 to-blue-300">
       <h2 className="text-m font-bold text-black py-4">{label}</h2>
       <p className="text-m font-bold text-black border-1 rounded-lg mt-7">
         {value}
@@ -121,16 +182,26 @@ export default function Admin() {
         </div>
 
         <nav className="flex-1 p-3 space-y-2">
-          {["view", "add", "leaderboard", "config"].map((item) => (
+          {["view", "add", "approvals", "leaderboard", "config"].map((item) => (
             <button
               key={item}
               onClick={() => {
                 setActive(item);
                 setSidebarOpen(false);
               }}
-              className={`w-full px-3 py-2 rounded ${active === item ? "bg-yellow-400 text-black font-bold" : "bg-blue-700 text-black font-bold"}`}
+              className={`w-full px-3 py-2 rounded flex items-center justify-between ${
+                active === item
+                  ? "bg-yellow-400 text-black font-bold"
+                  : "bg-blue-700 text-black font-bold"
+              }`}
             >
-              {item.toUpperCase()}
+              <span>{item.toUpperCase()}</span>
+              {/* Badge showing pending count on the approvals button */}
+              {item === "approvals" && pendingUsers.length > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {pendingUsers.length}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -158,11 +229,10 @@ export default function Admin() {
         </button>
 
         {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="mx-auto grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
           <Card label="TOTAL PLAYERS" value={players.length} />
           <Card label="DEBT CLEARED" value={debtClearedCount} />
           <Card label="TOTAL DEBT" value={`${totalDebt} TL`} />
-          <Card label="TOP PLAYER" value={sorted[0]?.name} />
         </div>
 
         {/* PLAYER TABLE */}
@@ -243,7 +313,6 @@ export default function Admin() {
                       <td className="p-2 text-black font-bold">
                         {p.redCards ?? 0}
                       </td>
-                      {/* Clean Sheets — only meaningful for GKs */}
                       <td className="p-2 text-black font-bold">
                         {isGK ? (p.cleanSheets ?? 0) : "—"}
                       </td>
@@ -284,6 +353,77 @@ export default function Admin() {
 
         {/* ADD PLAYER */}
         {active === "add" && <AddPlayerForm addPlayer={addPlayer} />}
+
+        {/* APPROVALS */}
+        {active === "approvals" && (
+          <div className="mt-4">
+            <h2 className="text-black font-bold text-xl mb-4">
+              ⏳ PENDING SIGNUP REQUESTS
+            </h2>
+
+            {pendingAlert && (
+              <div
+                className={`mb-4 px-4 py-2 rounded-lg text-sm font-semibold text-center border shadow
+                ${pendingAlert.type === "success" ? "bg-green-100 border-green-400 text-green-700" : "bg-red-100 border-red-400 text-red-700"}`}
+              >
+                {pendingAlert.message}
+              </div>
+            )}
+
+            {pendingLoading ? (
+              <div className="text-black font-semibold">Loading...</div>
+            ) : pendingUsers.length === 0 ? (
+              <div className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl shadow-xl p-6 text-black font-semibold text-center">
+                ✅ NO PENDING SIGNUP REQUESTS.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingUsers.map((user) => (
+                  <div
+                    key={user._id}
+                    className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl shadow-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    {/* Avatar + Info */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow flex-shrink-0">
+                        {user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-black">{user.name}</p>
+                        <p className="text-sm text-black/70">{user.email}</p>
+                        <p className="text-sm text-black/70">
+                          {user.position || "No position set"} •{" "}
+                          {user.phone || "No phone"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 sm:flex-shrink-0">
+                      <button
+                        onClick={() => handleApprove(user._id)}
+                        className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-2 rounded-lg shadow transition"
+                      >
+                        ✓ Accept
+                      </button>
+                      <button
+                        onClick={() => handleReject(user._id)}
+                        className="flex-1 sm:flex-none bg-red-500 hover:bg-red-600 text-white font-bold px-5 py-2 rounded-lg shadow transition"
+                      >
+                        ✕ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* LEADERBOARD */}
         {active === "leaderboard" && (
@@ -638,7 +778,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
         <h2 className="font-bold text-black text-lg mb-4">🔄 New Season</h2>
         <p className="text-black text-sm mb-4">
           Reset every player's goals, assists, attendance, cards, clean sheets,
-          and payments back to zero. Use this at the start of a fresh season.
+          and payments back to zero.
         </p>
         <div className="bg-white/30 rounded-lg p-3 text-sm text-black mb-4 space-y-1">
           <p>
@@ -652,7 +792,10 @@ function ResetSeasonCard({ players, updatePlayer }) {
           </p>
         </div>
         <button
-          onClick={() => setAlert(null) || setConfirmReset(true)}
+          onClick={() => {
+            setAlert(null);
+            setConfirmReset(true);
+          }}
           className="w-full py-3 rounded-lg font-bold shadow-xl bg-red-500 hover:bg-red-600 text-white transition-all duration-200"
         >
           Reset All Stats
@@ -876,7 +1019,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
 
         <h2 className="font-bold mb-4 text-lg">Edit Player</h2>
 
-        {/* Avatar */}
         <div className="flex items-center gap-4 mb-4">
           {image ? (
             <img
@@ -909,7 +1051,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           </div>
         </div>
 
-        {/* Player Name */}
         <div className="mb-3">
           <label className="block text-sm font-semibold mb-1">
             Player Name
@@ -922,7 +1063,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           />
         </div>
 
-        {/* Position */}
         <div className="mb-3">
           <label className="block text-sm font-semibold mb-1">Position</label>
           <select
@@ -938,7 +1078,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           </select>
         </div>
 
-        {/* Stepper fields */}
         {stepperFields.map(({ key, label }) => (
           <StepperField
             key={key}
@@ -949,7 +1088,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           />
         ))}
 
-        {/* Clean Sheets — only shown for Goalkeepers */}
         {isGK && (
           <StepperField
             label="🧤 Clean Sheets (+2 pts each)"
@@ -959,7 +1097,6 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           />
         )}
 
-        {/* Payment section */}
         <div className="bg-white/40 rounded-lg p-3 mb-3 space-y-2">
           <div className="flex justify-between text-sm font-semibold">
             <span>💳 Total Paid</span>
