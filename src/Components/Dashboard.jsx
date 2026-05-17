@@ -42,6 +42,7 @@ export default function PlayerDashboard() {
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [profileSource, setProfileSource] = useState(null); // 'leaderboard' | 'goals' | 'assists' | 'dashboard'
   const tooltipRef = useRef(null);
 
   const getPoints = (p) => {
@@ -325,12 +326,20 @@ export default function PlayerDashboard() {
     const isMe = vp._id === player?._id;
     const rank = sorted.findIndex((p) => p._id === vp._id) + 1;
 
+    const handleBack = () => {
+      setViewingPlayer(null);
+      if (profileSource === "leaderboard") setShowLeaderboard(true);
+      else if (profileSource === "goals") setShowGoalsLeaderboard(true);
+      else if (profileSource === "assists") setShowAssistsLeaderboard(true);
+      // 'dashboard' → no overlay to restore, just close
+    };
+
     return (
       <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <button
-              onClick={() => setViewingPlayer(null)}
+              onClick={handleBack}
               className="flex items-center gap-2 bg-white/30 hover:bg-white/50 text-black font-bold px-4 py-2 rounded-xl transition-all"
             >
               <ArrowLeft size={18} /> Back
@@ -452,6 +461,7 @@ export default function PlayerDashboard() {
                   <button
                     key={p._id}
                     onClick={() => {
+                      setProfileSource("leaderboard");
                       setViewingPlayer(p);
                       setShowLeaderboard(false);
                     }}
@@ -533,6 +543,7 @@ export default function PlayerDashboard() {
                   statValue={p.goals ?? 0}
                   statLabel="goals"
                   onSelect={(p) => {
+                    setProfileSource("goals");
                     setViewingPlayer(p);
                     setShowGoalsLeaderboard(false);
                   }}
@@ -581,6 +592,7 @@ export default function PlayerDashboard() {
                   statValue={p.assists ?? 0}
                   statLabel="assists"
                   onSelect={(p) => {
+                    setProfileSource("assists");
                     setViewingPlayer(p);
                     setShowAssistsLeaderboard(false);
                   }}
@@ -691,7 +703,12 @@ export default function PlayerDashboard() {
           </div>
           <div
             className="relative group cursor-pointer"
-            onClick={() => player && setViewingPlayer(player)}
+            onClick={() => {
+              if (player) {
+                setProfileSource("dashboard");
+                setViewingPlayer(player);
+              }
+            }}
             title="View your profile"
           >
             {player?.avatar ? (
@@ -743,7 +760,10 @@ export default function PlayerDashboard() {
                 return (
                   <button
                     key={p._id}
-                    onClick={() => setViewingPlayer(p)}
+                    onClick={() => {
+                      setProfileSource("dashboard");
+                      setViewingPlayer(p);
+                    }}
                     className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg w-full text-left transition-colors
                       ${isMe ? "bg-yellow-300 text-black" : "text-black hover:bg-blue-300"}`}
                   >
