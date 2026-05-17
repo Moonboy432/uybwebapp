@@ -96,7 +96,7 @@ export default function Login() {
         />
 
         {/* Password */}
-        <div className="relative mb-5">
+        <div className="relative mb-2">
           <input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -117,6 +117,16 @@ export default function Login() {
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
+        </div>
+
+        {/* Forgot Password */}
+        <div className="flex justify-end mb-5">
+          <Link
+            to="/forgot-password"
+            className="text-sm text-blue-500 hover:text-blue-700 hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
         {/* Login Button */}
