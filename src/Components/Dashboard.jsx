@@ -250,7 +250,7 @@ export default function PlayerDashboard() {
         {isSelf && (
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-2">
-              <span className="font-bold text-black">DEBT</span>
+              <span className="font-bold text-black">ACCOUNT</span>
               <CreditCard className="text-black" />
             </div>
             <p
@@ -259,7 +259,7 @@ export default function PlayerDashboard() {
               {debt <= 0
                 ? balance > 0
                   ? `✓ +${balance} TL`
-                  : "✓ Paid"
+                  : "✓ 0 TL"
                 : `${debt} TL`}
             </p>
           </div>
