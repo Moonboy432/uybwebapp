@@ -260,7 +260,7 @@ export default function PlayerDashboard() {
                 ? balance > 0
                   ? `✓ +${balance} TL`
                   : "✓ 0 TL"
-                : `${debt} TL`}
+                : `- ${debt} TL DEBT`}
             </p>
           </div>
         )}
