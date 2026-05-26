@@ -80,7 +80,7 @@ export default function PlayerDashboard() {
       .then((res) => res.json())
       .then((data) => {
         const loggedInPlayer = data.find(
-          (p) => p._id === decoded.id || p.name === decoded.name,
+          (p) => p.userId === decoded.id || p._id === decoded.id, // ✅ stable IDs only, no name
         );
         if (loggedInPlayer) setPlayer(loggedInPlayer);
       });
@@ -729,7 +729,7 @@ export default function PlayerDashboard() {
         </div>
 
         {/* Stats Cards */}
-        {renderPlayerStats(player ?? {}, true)}
+        {player && renderPlayerStats(player, true)}
 
         {/* Club Leaderboard preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
