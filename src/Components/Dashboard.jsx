@@ -13,6 +13,7 @@ import {
   Info,
   Volleyball,
   Award,
+  ClipboardList,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
@@ -39,10 +40,11 @@ export default function PlayerDashboard() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showGoalsLeaderboard, setShowGoalsLeaderboard] = useState(false);
   const [showAssistsLeaderboard, setShowAssistsLeaderboard] = useState(false);
+  const [showEntryList, setShowEntryList] = useState(false);
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [profileSource, setProfileSource] = useState(null); // 'leaderboard' | 'goals' | 'assists' | 'dashboard'
+  const [profileSource, setProfileSource] = useState(null);
   const tooltipRef = useRef(null);
 
   const getPoints = (p) => {
@@ -80,13 +82,12 @@ export default function PlayerDashboard() {
       .then((res) => res.json())
       .then((data) => {
         const loggedInPlayer = data.find(
-          (p) => p.userId === decoded.id || p._id === decoded.id, // ✅ stable IDs only, no name
+          (p) => p.userId === decoded.id || p._id === decoded.id,
         );
         if (loggedInPlayer) setPlayer(loggedInPlayer);
       });
   }, []);
 
-  // Load previous rankings on mount, then persist current snapshot
   useEffect(() => {
     if (players.length === 0) return;
     const stored = localStorage.getItem(RANK_STORAGE_KEY);
@@ -98,7 +99,6 @@ export default function PlayerDashboard() {
     localStorage.setItem(RANK_STORAGE_KEY, JSON.stringify(current));
   }, [players]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close tooltip on outside click
   useEffect(() => {
     if (!showTooltip) return;
     const handler = (e) => {
@@ -114,7 +114,6 @@ export default function PlayerDashboard() {
   const playerPaid = player?.paid ?? 0;
   const playerBalance = playerPaid - playerOwed;
 
-  // ── Rank movement badge ──────────────────────────────────────────────────
   const RankBadge = ({ playerId, currentRank, className = "" }) => {
     const { arrow, diff } = getRankMovement(
       playerId,
@@ -144,7 +143,6 @@ export default function PlayerDashboard() {
     );
   };
 
-  // ── Stat cards (reused for own dashboard and profile overlay) ────────────
   const renderPlayerStats = (p, isSelf) => {
     const att =
       totalMatches > 0 ? Math.round((p.played / totalMatches) * 100) : 0;
@@ -268,7 +266,6 @@ export default function PlayerDashboard() {
     );
   };
 
-  // ── Locked screen ────────────────────────────────────────────────────────
   if (player && getDebt(player) >= 400) {
     return (
       <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex items-center justify-center p-4">
@@ -319,7 +316,6 @@ export default function PlayerDashboard() {
     );
   }
 
-  // ── Player Profile Overlay ───────────────────────────────────────────────
   const ProfileOverlay = () => {
     if (!viewingPlayer) return null;
     const vp = viewingPlayer;
@@ -331,7 +327,7 @@ export default function PlayerDashboard() {
       if (profileSource === "leaderboard") setShowLeaderboard(true);
       else if (profileSource === "goals") setShowGoalsLeaderboard(true);
       else if (profileSource === "assists") setShowAssistsLeaderboard(true);
-      // 'dashboard' → no overlay to restore, just close
+      else if (profileSource === "entrylist") setShowEntryList(true);
     };
 
     return (
@@ -391,7 +387,6 @@ export default function PlayerDashboard() {
     );
   };
 
-  // ── Reusable player row for Goals / Assists leaderboards ─────────────────
   const StatLeaderboardRow = ({ p, i, statValue, statLabel, onSelect }) => {
     const isMe = p._id === player?._id;
     return (
@@ -431,7 +426,17 @@ export default function PlayerDashboard() {
     );
   };
 
-  // ── Main render ──────────────────────────────────────────────────────────
+  const entryListPlayers = [...players]
+    .filter((p) => {
+      const balance = (p.paid ?? 0) - (p.played ?? 0) * MATCH_COST;
+      return balance >= 200;
+    })
+    .sort((a, b) => {
+      const balA = (a.paid ?? 0) - (a.played ?? 0) * MATCH_COST;
+      const balB = (b.paid ?? 0) - (b.played ?? 0) * MATCH_COST;
+      return balB - balA;
+    });
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
       <ProfileOverlay />
@@ -612,6 +617,88 @@ export default function PlayerDashboard() {
         </div>
       )}
 
+      {/* Full Page Entry List Overlay */}
+      {showEntryList && (
+        <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <h2 className="text-2xl font-bold text-black text-center">✅</h2>
+              <img
+                src="/uybfclogo.png"
+                alt="Club Logo"
+                className="w-20 h-20 object-contain"
+              />
+              <h2 className="text-2xl font-bold text-black text-center">✅</h2>
+            </div>
+            <h2 className="text-center text-xl font-extrabold text-black mb-1">
+              NEXT GAME ENTRY LIST
+            </h2>
+
+            <div className="max-w-lg mx-auto space-y-3">
+              {entryListPlayers.length === 0 ? (
+                <div className="bg-blue-200 rounded-2xl shadow-xl p-8 text-center">
+                  <p className="text-black font-bold text-lg opacity-60">
+                    No players currently qualify for entry.
+                  </p>
+                </div>
+              ) : (
+                entryListPlayers.map((p, i) => {
+                  const balance = (p.paid ?? 0) - (p.played ?? 0) * MATCH_COST;
+                  const isMe = p._id === player?._id;
+                  return (
+                    <button
+                      key={p._id}
+                      onClick={() => {
+                        setProfileSource("entrylist");
+                        setViewingPlayer(p);
+                        setShowEntryList(false);
+                      }}
+                      className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl w-full text-left transition-transform active:scale-95
+                        ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
+                    >
+                      <span className="text-lg font-bold w-6 text-black shrink-0">
+                        {i + 1}
+                      </span>
+                      {p.avatar ? (
+                        <img
+                          src={p.avatar}
+                          alt={p.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-white shadow shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow shrink-0">
+                          {p.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                      <span className="flex-1 font-bold text-black">
+                        {p.name}
+                        {isMe && (
+                          <span className="text-sm font-normal"> (you)</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex justify-center mt-6 pb-6">
+              <button
+                onClick={() => setShowEntryList(false)}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
+              >
+                <X size={18} /> Close Entry List
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -669,6 +756,16 @@ export default function PlayerDashboard() {
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
           >
             <Award size={20} /> <p className="font-bold">Assists</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowEntryList(true);
+              setSidebarOpen(false);
+            }}
+            className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
+          >
+            <ClipboardList size={20} /> <p className="font-bold">Entry List</p>
           </button>
         </nav>
 
@@ -734,7 +831,6 @@ export default function PlayerDashboard() {
         {/* Club Leaderboard preview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl lg:col-span-1">
-            {/* Header with info icon */}
             <div className="flex items-center gap-2 mb-4">
               <h3 className="font-semibold text-sm flex-1">CLUB LEADERBOARD</h3>
               <div className="relative shrink-0" ref={tooltipRef}>
