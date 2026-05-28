@@ -109,6 +109,10 @@ export default function PlayerDashboard() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showTooltip]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const playerDebt = player ? getDebt(player) : 0;
   const playerOwed = player ? (player.played ?? 0) * MATCH_COST : 0;
   const playerPaid = player?.paid ?? 0;
