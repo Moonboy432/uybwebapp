@@ -438,7 +438,10 @@ export default function PlayerDashboard() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex overflow-x-hidden">
+    <div
+      className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex"
+      style={{ maxWidth: "100vw", overflowX: "clip" }}
+    >
       <ProfileOverlay />
 
       {/* Full Page League Leaderboard Overlay */}
@@ -710,8 +713,9 @@ export default function PlayerDashboard() {
       {/* Sidebar */}
       <aside
         className={`fixed md:static z-50 top-0 left-0 min-h-full w-44 sm:w-52 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0`}
+  ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+  md:translate-x-0`}
+        style={{ willChange: "transform" }}
       >
         <div className="flex items-center justify-between mb-8 md:hidden">
           <img
