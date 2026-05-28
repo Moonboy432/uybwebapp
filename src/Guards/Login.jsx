@@ -92,7 +92,7 @@ export default function Login() {
             setUsername(e.target.value);
             setError("");
           }}
-          className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg mb-4 text-sm sm:text-base"
+          className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg mb-4 text-base"
         />
 
         {/* Password */}
@@ -107,7 +107,7 @@ export default function Login() {
               setPassword(e.target.value);
               setError("");
             }}
-            className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg pr-12 text-sm sm:text-base"
+            className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-3 rounded-lg pr-12 text-base"
           />
 
           <button
