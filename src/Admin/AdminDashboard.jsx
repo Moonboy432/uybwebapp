@@ -45,7 +45,6 @@ export default function Admin() {
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
 
-  // Fetch pending users whenever the approvals tab is opened
   useEffect(() => {
     if (active === "approvals") fetchPending();
   }, [active]);
@@ -66,6 +65,11 @@ export default function Admin() {
   };
 
   const handleApprove = async (userId) => {
+    setPendingUsers((prev) =>
+      prev.map((u) =>
+        u._id === userId ? { ...u, actionState: "loading-approve" } : u,
+      ),
+    );
     try {
       const res = await fetch(`${API_URL}/api/auth/approve/${userId}`, {
         method: "POST",
@@ -73,18 +77,36 @@ export default function Admin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+      setPendingUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, actionState: "accepted" } : u,
+        ),
+      );
       setPendingAlert({
         type: "success",
         message: "✓ Player approved and added to the squad!",
       });
+      setTimeout(() => {
+        setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+        setPendingAlert(null);
+      }, 2000);
     } catch (err) {
+      setPendingUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, actionState: undefined } : u,
+        ),
+      );
       setPendingAlert({ type: "error", message: `✕ ${err.message}` });
+      setTimeout(() => setPendingAlert(null), 3000);
     }
-    setTimeout(() => setPendingAlert(null), 3000);
   };
 
   const handleReject = async (userId) => {
+    setPendingUsers((prev) =>
+      prev.map((u) =>
+        u._id === userId ? { ...u, actionState: "loading-reject" } : u,
+      ),
+    );
     try {
       const res = await fetch(`${API_URL}/api/auth/reject/${userId}`, {
         method: "POST",
@@ -92,21 +114,34 @@ export default function Admin() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+      setPendingUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, actionState: "rejected" } : u,
+        ),
+      );
       setPendingAlert({
         type: "success",
         message: "✓ Signup request rejected.",
       });
+      setTimeout(() => {
+        setPendingUsers((prev) => prev.filter((u) => u._id !== userId));
+        setPendingAlert(null);
+      }, 2000);
     } catch (err) {
+      setPendingUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, actionState: undefined } : u,
+        ),
+      );
       setPendingAlert({ type: "error", message: `✕ ${err.message}` });
+      setTimeout(() => setPendingAlert(null), 3000);
     }
-    setTimeout(() => setPendingAlert(null), 3000);
   };
 
   const Card = ({ label, value }) => (
     <div className="p-4 w-70 h-35 rounded-2xl shadow-xl bg-gradient-to-r from-blue-400 to-blue-300">
-      <h2 className="text-m font-bold text-black py-4">{label}</h2>
-      <p className="text-m font-bold text-black border-1 rounded-lg mt-7">
+      <h2 className="text-m font-light text-black py-4">{label}</h2>
+      <p className="text-lg font-extrabold text-black rounded-lg mt-7 text-right">
         {value}
       </p>
     </div>
@@ -117,7 +152,13 @@ export default function Admin() {
     return s + (d > 0 ? d : 0);
   }, 0);
 
-  const debtClearedCount = players.filter((p) => getDebt(p) <= 0).length;
+  // Total surplus money across all players with positive balance
+  const totalPositiveBalance = players.reduce((s, p) => {
+    const d = getDebt(p);
+    return s + (d <= 0 ? Math.abs(d) : 0);
+  }, 0);
+  // Count players with negative balance (owing)
+  const owingCount = players.filter((p) => getDebt(p) > 0).length;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 text-white">
@@ -196,7 +237,6 @@ export default function Admin() {
               }`}
             >
               <span>{item.toUpperCase()}</span>
-              {/* Badge showing pending count on the approvals button */}
               {item === "approvals" && pendingUsers.length > 0 && (
                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {pendingUsers.length}
@@ -228,10 +268,13 @@ export default function Admin() {
           ☰ Menu
         </button>
 
-        {/* STATS */}
+        {/* STATS — updated card labels/values */}
         <div className="mx-auto grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-          <Card label="TOTAL PLAYERS" value={players.length} />
-          <Card label="DEBT CLEARED" value={debtClearedCount} />
+          <Card
+            label="TOTAL POSITIVE BALANCE"
+            value={`${totalPositiveBalance} TL`}
+          />
+          <Card label="PLAYERS OWING" value={owingCount} />
           <Card label="TOTAL DEBT" value={`${totalDebt} TL`} />
         </div>
 
@@ -378,48 +421,138 @@ export default function Admin() {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingUsers.map((user) => (
-                  <div
-                    key={user._id}
-                    className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl shadow-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    {/* Avatar + Info */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow flex-shrink-0">
-                        {user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-black">{user.name}</p>
-                        <p className="text-sm text-black/70">{user.email}</p>
-                        <p className="text-sm text-black/70">
-                          {user.position || "No position set"} •{" "}
-                          {user.phone || "No phone"}
-                        </p>
-                      </div>
-                    </div>
+                {pendingUsers.map((user) => {
+                  const isLoadingApprove =
+                    user.actionState === "loading-approve";
+                  const isLoadingReject = user.actionState === "loading-reject";
+                  const isAccepted = user.actionState === "accepted";
+                  const isRejected = user.actionState === "rejected";
+                  const isActing =
+                    isLoadingApprove ||
+                    isLoadingReject ||
+                    isAccepted ||
+                    isRejected;
 
-                    {/* Actions */}
-                    <div className="flex gap-2 sm:flex-shrink-0">
-                      <button
-                        onClick={() => handleApprove(user._id)}
-                        className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-bold px-5 py-2 rounded-lg shadow transition"
-                      >
-                        ✓ Accept
-                      </button>
-                      <button
-                        onClick={() => handleReject(user._id)}
-                        className="flex-1 sm:flex-none bg-red-500 hover:bg-red-600 text-white font-bold px-5 py-2 rounded-lg shadow transition"
-                      >
-                        ✕ Reject
-                      </button>
+                  return (
+                    <div
+                      key={user._id}
+                      className="bg-gradient-to-r from-blue-400 to-blue-300 rounded-xl shadow-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      {/* Avatar + Info */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow flex-shrink-0">
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-black">{user.name}</p>
+                          <p className="text-sm text-black/70">{user.email}</p>
+                          <p className="text-sm text-black/70">
+                            {user.position || "No position set"} •{" "}
+                            {user.phone || "No phone"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 sm:flex-shrink-0">
+                        {/* Accept button */}
+                        <button
+                          onClick={() => !isActing && handleApprove(user._id)}
+                          disabled={isActing}
+                          className={`flex-1 sm:flex-none font-bold px-5 py-2 rounded-lg shadow transition min-w-[110px] flex items-center justify-center gap-2
+                            ${
+                              isAccepted
+                                ? "bg-green-700 text-white cursor-default"
+                                : isLoadingApprove
+                                  ? "bg-green-400 text-white cursor-not-allowed"
+                                  : isActing
+                                    ? "bg-green-300 text-white cursor-not-allowed opacity-50"
+                                    : "bg-green-500 hover:bg-green-600 text-white"
+                            }`}
+                        >
+                          {isLoadingApprove ? (
+                            <>
+                              <svg
+                                className="animate-spin h-4 w-4 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v8z"
+                                />
+                              </svg>
+                              Accepting...
+                            </>
+                          ) : isAccepted ? (
+                            "✓ Accepted"
+                          ) : (
+                            "✓ Accept"
+                          )}
+                        </button>
+
+                        {/* Reject button */}
+                        <button
+                          onClick={() => !isActing && handleReject(user._id)}
+                          disabled={isActing}
+                          className={`flex-1 sm:flex-none font-bold px-5 py-2 rounded-lg shadow transition min-w-[110px] flex items-center justify-center gap-2
+                            ${
+                              isRejected
+                                ? "bg-red-700 text-white cursor-default"
+                                : isLoadingReject
+                                  ? "bg-red-400 text-white cursor-not-allowed"
+                                  : isActing
+                                    ? "bg-red-300 text-white cursor-not-allowed opacity-50"
+                                    : "bg-red-500 hover:bg-red-600 text-white"
+                            }`}
+                        >
+                          {isLoadingReject ? (
+                            <>
+                              <svg
+                                className="animate-spin h-4 w-4 text-white"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v8z"
+                                />
+                              </svg>
+                              Rejecting...
+                            </>
+                          ) : isRejected ? (
+                            "✕ Rejected"
+                          ) : (
+                            "✕ Reject"
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

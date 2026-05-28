@@ -438,7 +438,7 @@ export default function PlayerDashboard() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex">
+    <div className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex overflow-x-hidden">
       <ProfileOverlay />
 
       {/* Full Page League Leaderboard Overlay */}
@@ -782,7 +782,7 @@ export default function PlayerDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 sm:p-6 w-full">
+      <main className="flex-1 p-4 sm:p-6 w-full min-w-0">
         <div className="flex items-center gap-4 mb-6">
           <button
             className="md:hidden bg-yellow-400 p-2 rounded-xl shadow-xl"
