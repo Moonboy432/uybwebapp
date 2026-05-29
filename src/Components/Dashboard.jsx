@@ -14,6 +14,8 @@ import {
   Volleyball,
   Award,
   ClipboardList,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
@@ -33,6 +35,42 @@ const getRankMovement = (playerId, currentRank, prevRankings) => {
   return { arrow: "same", diff: 0 };
 };
 
+// Reusable avatar thumbnail — never a <button> itself, safe to nest anywhere
+const AvatarThumb = ({ p, size = "md", onClick }) => {
+  const sizeClass =
+    size === "sm"
+      ? "w-10 h-10 text-sm border-2"
+      : "w-16 h-16 text-2xl border-4";
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onClick?.(e)}
+      className={`shrink-0 rounded-full overflow-hidden ${sizeClass} border-white shadow cursor-pointer hover:scale-110 transition-transform focus:outline-none`}
+      title="View photo"
+    >
+      {p.avatar ? (
+        <img
+          src={p.avatar}
+          alt={p.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full bg-blue-700 text-white flex items-center justify-center font-bold">
+          {p.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase()}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function PlayerDashboard() {
   const { players, totalMatches } = usePlayers();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,7 +83,16 @@ export default function PlayerDashboard() {
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [profileSource, setProfileSource] = useState(null);
+  const [avatarZoom, setAvatarZoom] = useState(null);
   const tooltipRef = useRef(null);
+
+  // Avatar editing state
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
+  const avatarInputRef = useRef(null);
 
   const getPoints = (p) => {
     const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
@@ -113,17 +160,249 @@ export default function PlayerDashboard() {
     window.scrollTo(0, 0);
   }, []);
 
-  const playerDebt = player ? getDebt(player) : 0;
-  const playerOwed = player ? (player.played ?? 0) * MATCH_COST : 0;
-  const playerPaid = player?.paid ?? 0;
-  const playerBalance = playerPaid - playerOwed;
+  // ── Avatar editing helpers ──────────────────────────────────────────────────
+
+  const openAvatarModal = () => {
+    setAvatarPreview(player?.avatar ?? null);
+    setAvatarFile(null);
+    setAvatarError(null);
+    setShowAvatarModal(true);
+  };
+
+  const handleAvatarFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please select an image file.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError("Image must be smaller than 2 MB.");
+      return;
+    }
+    setAvatarError(null);
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarSave = async () => {
+    if (!avatarFile && avatarPreview === player?.avatar) {
+      setShowAvatarModal(false);
+      return;
+    }
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const token = localStorage.getItem("token");
+      let cloudinaryUrl = avatarPreview ?? "";
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+        formData.append("upload_preset", "PlayersProfile");
+        const cloudRes = await fetch(
+          "https://api.cloudinary.com/v1_1/dnls62y6r/image/upload",
+          { method: "POST", body: formData },
+        );
+        if (!cloudRes.ok) {
+          const err = await cloudRes.json().catch(() => ({}));
+          throw new Error(err.error?.message || "Cloudinary upload failed");
+        }
+        const cloudData = await cloudRes.json();
+        cloudinaryUrl = cloudData.secure_url;
+      }
+
+      const res = await fetch(`${API_URL}/api/players/${player._id}/avatar`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ avatar: cloudinaryUrl }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to save avatar");
+      }
+      const updated = await res.json();
+      const newAvatar =
+        updated.avatar ?? updated.player?.avatar ?? cloudinaryUrl;
+      setPlayer((prev) => ({ ...prev, avatar: newAvatar }));
+      setShowAvatarModal(false);
+    } catch (err) {
+      setAvatarError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleAvatarRemove = () => {
+    setAvatarPreview(null);
+    setAvatarFile(null);
+    setAvatarError(null);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
+
+  const openAvatarZoom = (p) => {
+    setAvatarZoom({
+      src: p.avatar || null,
+      name: p.name,
+      initials: p.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+    });
+  };
+
+  // ── Avatar Modal ────────────────────────────────────────────────────────────
+
+  const AvatarModal = () => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-extrabold text-black">Edit Avatar</h3>
+          <button
+            onClick={() => setShowAvatarModal(false)}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            {avatarPreview ? (
+              <img
+                src={avatarPreview}
+                alt="Avatar preview"
+                className="w-24 h-24 rounded-full object-cover border-4 border-blue-300 shadow-lg"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-yellow-400 border-4 border-blue-300 shadow-lg flex items-center justify-center font-bold text-blue-800 text-3xl">
+                {player?.name?.charAt(0).toUpperCase() ?? "?"}
+              </div>
+            )}
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+              title="Choose image"
+            >
+              <Camera size={14} />
+            </button>
+          </div>
+          {avatarPreview && (
+            <button
+              onClick={handleAvatarRemove}
+              className="text-xs text-red-500 hover:text-red-700 font-semibold underline"
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarFileChange}
+        />
+
+        <button
+          onClick={() => avatarInputRef.current?.click()}
+          className="w-full border-2 border-dashed border-blue-300 hover:border-blue-500 rounded-2xl py-3 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          {avatarPreview ? "Choose a different photo" : "Choose a photo"}
+          <p className="text-xs font-normal text-gray-400 mt-0.5">
+            JPG, PNG, GIF · max 2 MB
+          </p>
+        </button>
+
+        {avatarError && (
+          <p className="text-sm text-red-500 font-semibold text-center -mt-2">
+            {avatarError}
+          </p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowAvatarModal(false)}
+            disabled={avatarUploading}
+            className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAvatarSave}
+            disabled={
+              avatarUploading ||
+              (!avatarFile && avatarPreview === player?.avatar)
+            }
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {avatarUploading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Saving…
+              </>
+            ) : (
+              "Save"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Avatar Zoom Lightbox ────────────────────────────────────────────────────
+
+  const AvatarZoomModal = () => (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm"
+      onClick={() => setAvatarZoom(null)}
+    >
+      <style>{`
+        @keyframes avatarZoomIn {
+          from { opacity: 0; transform: scale(0.65); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+      <div
+        className="flex flex-col items-center gap-5"
+        style={{ animation: "avatarZoomIn 0.2s cubic-bezier(.4,0,.2,1) both" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {avatarZoom.src ? (
+          <img
+            src={avatarZoom.src}
+            alt={avatarZoom.name}
+            className="w-56 h-56 rounded-full object-cover border-4 border-white shadow-2xl"
+          />
+        ) : (
+          <div className="w-56 h-56 rounded-full bg-yellow-400 border-4 border-white shadow-2xl flex items-center justify-center font-extrabold text-blue-800 text-6xl">
+            {avatarZoom.initials}
+          </div>
+        )}
+        <p className="text-white font-extrabold text-xl drop-shadow">
+          {avatarZoom.name}
+        </p>
+        <button
+          onClick={() => setAvatarZoom(null)}
+          className="bg-white/20 hover:bg-white/40 text-white font-bold px-8 py-2.5 rounded-xl transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
 
   const RankBadge = ({ playerId, currentRank, className = "" }) => {
-    const { arrow, diff } = getRankMovement(
-      playerId,
-      currentRank,
-      prevRankings,
-    );
+    const { arrow } = getRankMovement(playerId, currentRank, prevRankings);
     if (arrow === "up")
       return (
         <span
@@ -141,7 +420,7 @@ export default function PlayerDashboard() {
         </span>
       );
     return (
-      <span className={` shrink-0 flex justify-center mx-0 ${className}`}>
+      <span className={`shrink-0 flex justify-center mx-0 ${className}`}>
         <Minus size={12} className="text-gray-400" strokeWidth={2} />
       </span>
     );
@@ -351,22 +630,24 @@ export default function PlayerDashboard() {
 
           <div className="max-w-lg mx-auto">
             <div className="bg-white/30 rounded-2xl p-5 mb-5 flex items-center gap-4 shadow-xl">
-              {vp.avatar ? (
-                <img
-                  src={vp.avatar}
-                  alt={vp.name}
-                  className="w-16 h-16 rounded-full object-cover border-4 border-white shadow"
+              {/* Avatar — zoomable for all, editable only for self */}
+              <div className="relative shrink-0">
+                <AvatarThumb
+                  p={isMe ? player : vp}
+                  size="lg"
+                  onClick={() => openAvatarZoom(isMe ? player : vp)}
                 />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-yellow-400 border-4 border-white shadow flex items-center justify-center font-bold text-blue-800 text-2xl">
-                  {vp.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </div>
-              )}
+                {isMe && (
+                  <button
+                    onClick={openAvatarModal}
+                    className="absolute bottom-0 right-0 w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+                    title="Edit avatar"
+                  >
+                    <Camera size={11} />
+                  </button>
+                )}
+              </div>
+
               <div>
                 <p className="text-xl font-extrabold text-black">
                   {vp.name}{" "}
@@ -391,6 +672,7 @@ export default function PlayerDashboard() {
     );
   };
 
+  // StatLeaderboardRow — outer element is a <button>, so avatars use AvatarThumb (div-based)
   const StatLeaderboardRow = ({ p, i, statValue, statLabel, onSelect }) => {
     const isMe = p._id === player?._id;
     return (
@@ -403,22 +685,14 @@ export default function PlayerDashboard() {
         <span className="text-lg font-bold w-6 text-black shrink-0">
           {i + 1}
         </span>
-        {p.avatar ? (
-          <img
-            src={p.avatar}
-            alt={p.name}
-            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow shrink-0"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow shrink-0">
-            {p.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()}
-          </div>
-        )}
+        <AvatarThumb
+          p={p}
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            openAvatarZoom(p);
+          }}
+        />
         <span className="flex-1 font-bold text-black">
           {p.name}
           {isMe && <span className="text-sm font-normal"> (you)</span>}
@@ -446,6 +720,8 @@ export default function PlayerDashboard() {
       className="min-h-screen bg-gradient-to-r from-blue-400 to-blue-300 flex"
       style={{ maxWidth: "100vw", overflowX: "clip" }}
     >
+      {showAvatarModal && <AvatarModal />}
+      {avatarZoom && <AvatarZoomModal />}
       <ProfileOverlay />
 
       {/* Full Page League Leaderboard Overlay */}
@@ -462,7 +738,7 @@ export default function PlayerDashboard() {
               <h2 className="text-2xl font-bold text-black text-center">🏆</h2>
             </div>
             <div className="text-center text-xs font-bold mb-6 animate-bounce">
-              TAP ON ANY PLAYER'S IMAGE TO VIEW THEIR STATS
+              TAP TO VIEW PICTURES OR STATS
             </div>
 
             <div className="max-w-lg mx-auto space-y-3">
@@ -484,22 +760,15 @@ export default function PlayerDashboard() {
                       {i + 1}
                     </span>
                     <RankBadge playerId={p._id} currentRank={i + 1} />
-                    {p.avatar ? (
-                      <img
-                        src={p.avatar}
-                        alt={p.name}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow shrink-0">
-                        {p.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                    )}
+                    {/* AvatarThumb renders a div, never a button — safe inside <button> */}
+                    <AvatarThumb
+                      p={p}
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openAvatarZoom(p);
+                      }}
+                    />
                     <span className="flex-1 font-bold text-black">
                       {p.name}
                       {isMe && (
@@ -545,7 +814,6 @@ export default function PlayerDashboard() {
             <div className="text-center text-xs font-bold mb-6 animate-bounce">
               TAP ON ANY PLAYER TO VIEW THEIR STATS
             </div>
-
             <div className="max-w-lg mx-auto space-y-3">
               {sortedByGoals.map((p, i) => (
                 <StatLeaderboardRow
@@ -562,7 +830,6 @@ export default function PlayerDashboard() {
                 />
               ))}
             </div>
-
             <div className="flex justify-center mt-6 pb-6">
               <button
                 onClick={() => setShowGoalsLeaderboard(false)}
@@ -594,7 +861,6 @@ export default function PlayerDashboard() {
             <div className="text-center text-xs font-bold mb-6 animate-bounce">
               TAP ON ANY PLAYER TO VIEW THEIR STATS
             </div>
-
             <div className="max-w-lg mx-auto space-y-3">
               {sortedByAssists.map((p, i) => (
                 <StatLeaderboardRow
@@ -611,7 +877,6 @@ export default function PlayerDashboard() {
                 />
               ))}
             </div>
-
             <div className="flex justify-center mt-6 pb-6">
               <button
                 onClick={() => setShowAssistsLeaderboard(false)}
@@ -640,7 +905,6 @@ export default function PlayerDashboard() {
             <h2 className="text-center text-xl font-extrabold text-black mb-1">
               NEXT GAME ENTRY LIST
             </h2>
-
             <div className="max-w-lg mx-auto space-y-3">
               {entryListPlayers.length === 0 ? (
                 <div className="bg-blue-200 rounded-2xl shadow-xl p-8 text-center">
@@ -650,7 +914,6 @@ export default function PlayerDashboard() {
                 </div>
               ) : (
                 entryListPlayers.map((p, i) => {
-                  const balance = (p.paid ?? 0) - (p.played ?? 0) * MATCH_COST;
                   const isMe = p._id === player?._id;
                   return (
                     <button
@@ -666,22 +929,14 @@ export default function PlayerDashboard() {
                       <span className="text-lg font-bold w-6 text-black shrink-0">
                         {i + 1}
                       </span>
-                      {p.avatar ? (
-                        <img
-                          src={p.avatar}
-                          alt={p.name}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-white shadow shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow shrink-0">
-                          {p.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase()}
-                        </div>
-                      )}
+                      <AvatarThumb
+                        p={p}
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAvatarZoom(p);
+                        }}
+                      />
                       <span className="flex-1 font-bold text-black">
                         {p.name}
                         {isMe && (
@@ -693,7 +948,6 @@ export default function PlayerDashboard() {
                 })
               )}
             </div>
-
             <div className="flex justify-center mt-6 pb-6">
               <button
                 onClick={() => setShowEntryList(false)}
@@ -717,8 +971,7 @@ export default function PlayerDashboard() {
       {/* Sidebar */}
       <aside
         className={`fixed md:static z-50 top-0 left-0 min-h-full w-44 sm:w-52 bg-blue-300 shadow-md p-6 flex flex-col transform transition-transform duration-200
-  ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-  md:translate-x-0`}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
         style={{ willChange: "transform" }}
       >
         <div className="flex items-center justify-between mb-8 md:hidden">
@@ -734,7 +987,6 @@ export default function PlayerDashboard() {
         <div className="flex items-center justify-center">
           <h2 className="text-2xl font-bold hidden md:block">UYB.FC</h2>
         </div>
-
         <nav className="space-y-4 flex-1 mt-4">
           <button
             onClick={() => {
@@ -745,7 +997,6 @@ export default function PlayerDashboard() {
           >
             <Trophy size={20} /> <p className="font-bold">League</p>
           </button>
-
           <button
             onClick={() => {
               setShowGoalsLeaderboard(true);
@@ -755,7 +1006,6 @@ export default function PlayerDashboard() {
           >
             <Volleyball size={20} /> <p className="font-bold">Goals</p>
           </button>
-
           <button
             onClick={() => {
               setShowAssistsLeaderboard(true);
@@ -765,7 +1015,6 @@ export default function PlayerDashboard() {
           >
             <Award size={20} /> <p className="font-bold">Assists</p>
           </button>
-
           <button
             onClick={() => {
               setShowEntryList(true);
@@ -776,7 +1025,6 @@ export default function PlayerDashboard() {
             <ClipboardList size={20} /> <p className="font-bold">Entry List</p>
           </button>
         </nav>
-
         <div className="mt-auto">
           <Link to="/home">
             <button
@@ -806,30 +1054,45 @@ export default function PlayerDashboard() {
             <h1 className="text-xl font-bold">Hello {player?.name}</h1>
             <p className="text-gray-700">This is your personal dashboard</p>
           </div>
-          <div
-            className="relative group cursor-pointer"
-            onClick={() => {
-              if (player) {
-                setProfileSource("dashboard");
-                setViewingPlayer(player);
-              }
-            }}
-            title="View your profile"
-          >
-            {player?.avatar ? (
-              <img
-                src={player.avatar}
-                alt={player.name}
-                className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-yellow-400 border-4 border-white shadow-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-blue-800">
-                  {player?.name?.charAt(0).toUpperCase() ?? "?"}
-                </span>
-              </div>
+
+          <div className="relative group">
+            <div
+              className="cursor-pointer"
+              onClick={() => {
+                if (player) {
+                  setProfileSource("dashboard");
+                  setViewingPlayer(player);
+                }
+              }}
+              title="View your profile"
+            >
+              {player?.avatar ? (
+                <img
+                  src={player.avatar}
+                  alt={player.name}
+                  className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-yellow-400 border-4 border-white shadow-lg flex items-center justify-center">
+                  <span className="text-lg font-bold text-blue-800">
+                    {player?.name?.charAt(0).toUpperCase() ?? "?"}
+                  </span>
+                </div>
+              )}
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full" />
+            </div>
+            {player && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openAvatarModal();
+                }}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                title="Edit avatar"
+              >
+                <Camera size={10} />
+              </button>
             )}
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full" />
           </div>
         </div>
 
@@ -856,7 +1119,6 @@ export default function PlayerDashboard() {
                 )}
               </div>
             </div>
-
             <div className="space-y-1">
               {sorted.slice(0, 5).map((p, i) => {
                 const points = Math.round(getPoints(p));
