@@ -1091,6 +1091,16 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
     setPayment("");
   };
 
+  const handleDeductPayment = () => {
+    const amount = Number(payment);
+    if (!amount || amount <= 0) return;
+    setForm((prev) => ({
+      ...prev,
+      paid: Math.max(0, (Number(prev.paid) || 0) - amount),
+    }));
+    setPayment("");
+  };
+
   const debt =
     (Number(form.played) || 0) * MATCH_COST - (Number(form.paid) || 0);
 
@@ -1260,6 +1270,12 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
               className="bg-green-500 hover:bg-green-600 text-white font-bold px-3 rounded shadow"
             >
               + Add
+            </button>
+            <button
+              onClick={handleDeductPayment}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold px-3 rounded shadow"
+            >
+              - Deduct
             </button>
           </div>
         </div>
