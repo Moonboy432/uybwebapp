@@ -10,6 +10,7 @@ import Event from "./Landing/Event";
 import AdminDashboard from "./Admin/AdminDashboard";
 import { PlayerProvider } from "./context/PlayerContext";
 import ForgotPassword from "./Guards/ForgotPassword";
+import Rules from "./Landing/Rules";
 
 function App() {
   const isLoggedIn = !!localStorage.getItem("player");
@@ -24,6 +25,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/squad" element={<Squad />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/rules" element={<Rules />} />
         <Route
           path="/dashboard"
           element={

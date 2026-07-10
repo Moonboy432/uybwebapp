@@ -32,6 +32,9 @@ export default function Navbar() {
           <Link to="/gallery" className="text-white hover:text-gray-200">
             Gallery
           </Link>
+          <Link to="/rules" className="text-white hover:text-gray-200">
+            Rules
+          </Link>
           <Link to="/login">
             <button className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
               <User className="w-4 h-4" />
@@ -71,6 +74,13 @@ export default function Navbar() {
             onClick={() => setIsOpen(false)}
           >
             Gallery
+          </Link>
+          <Link
+            to="/rules"
+            className="block text-white py-2 hover:bg-blue-500 rounded"
+            onClick={() => setIsOpen(false)}
+          >
+            Rules
           </Link>
           <Link
             to="/login"
