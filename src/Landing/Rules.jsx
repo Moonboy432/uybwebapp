@@ -53,12 +53,10 @@ const sections = [
         icon: Wallet,
         title: "Account",
         points: [
-          "Gate fee is 200TL/6000 nairas per player ",
+          "Gate fee is 200TL/6,200 nairas per player ",
           "Players are advised to pay gate fees in advance.",
           "Our modes of payment remains cash, Naira transers and IBAN transfers.",
           "Advance payments are promptly recorded on every player's personal dashboard on the app.",
-          
-          
         ],
       },
     ],
@@ -124,8 +122,10 @@ const sections = [
           "1 Goal = 3 points",
           "1 Assist = 2 points",
           "1 Cleansheet = 1 points (for GoalKeepers)",
+          "Player of the week = 4 points",
+          "Zero Debt Bonus = 2 Points",
           "1 Red Card = 3 points deduction",
-          "1 Yellow Card = 1 points deduction",
+          "1 Yellow Card = 1 point deduction",
         ],
       },
       {
@@ -153,7 +153,8 @@ const sections = [
           "Persistent misconduct can mean suspension for the rest of the day.",
           "Playing without payment is prohibited.",
           "Any player who hands over his training bib to a player who hasn't paid before playing will be heavily penalized.",
-          "Anyone who fights stands the risk of being suspended from the club."
+          "Anyone who fights stands the risk of being suspended from the club.",
+          "First penalty for fighting is 3 Red Cards to the record"
         ],
       },
       {
