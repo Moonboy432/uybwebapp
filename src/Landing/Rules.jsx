@@ -252,10 +252,10 @@ export default function Event() {
             />
           </div>
           <h1 className="text-3xl font-black tracking-tight drop-shadow-sm">
-            4-Team Game Day
+            Rules & Regulations
           </h1>
           <p className="text-white/90 font-semibold mt-1">
-            Rules &amp; Regulations
+            Wednesday Game Days
           </p>
           <span className="mt-3 inline-block bg-white/20 backdrop-blur-sm text-white text-sm font-semibold px-4 py-1 rounded-full">
             6-a-side · 5 outfield players + 1 goalkeeper
