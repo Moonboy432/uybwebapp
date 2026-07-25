@@ -16,15 +16,19 @@ import {
   ClipboardList,
   Camera,
   Loader2,
+  Star,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
+import {
+  getPoints as getPlayerPoints,
+  getDebt,
+  isCleanSheetEligible,
+  MATCH_COST,
+} from "../../utils/scoring";
 
-const MATCH_COST = 200;
 const RANK_STORAGE_KEY = "uybfc_prev_rankings";
-
-const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
 
 const getRankMovement = (playerId, currentRank, prevRankings) => {
   if (!prevRankings || !(playerId in prevRankings))
@@ -73,6 +77,7 @@ const AvatarThumb = ({ p, size = "md", onClick }) => {
 
 export default function PlayerDashboard() {
   const { players, totalMatches } = usePlayers();
+  const getPoints = (p) => getPlayerPoints(p, totalMatches);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -94,22 +99,7 @@ export default function PlayerDashboard() {
   const [avatarError, setAvatarError] = useState(null);
   const avatarInputRef = useRef(null);
 
-  const getPoints = (p) => {
-    const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    const debt = getDebt(p);
-    const zeroDebtBonus = debt <= 0 ? 2 : 0;
-    const cleanSheetBonus =
-      p.position === "Goalkeeper" ? (p.cleanSheets ?? 0) * 2 : 0;
-    return (
-      p.goals * 3 +
-      p.assists * 2 +
-      attendance -
-      (p.yellowCards ?? 0) * 1 -
-      (p.redCards ?? 0) * 3 +
-      zeroDebtBonus +
-      cleanSheetBonus
-    );
-  };
+  
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
   const sortedByGoals = [...players].sort(
@@ -433,6 +423,7 @@ export default function PlayerDashboard() {
     const owed = (p.played ?? 0) * MATCH_COST;
     const paid = p.paid ?? 0;
     const balance = paid - owed;
+    const cleanSheetEligible = isCleanSheetEligible(p);
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
@@ -490,19 +481,33 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {p.position === "Goalkeeper" && (
+        {cleanSheetEligible && (
           <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
             <div className="flex justify-between mb-4">
               <span className="font-bold text-black">CLEAN SHEETS</span>
-              <span className="text-lg">🧤</span>
+              <span className="text-lg">⛔︎</span>
             </div>
             <div className="text-center">
               <p className="text-3xl sm:text-4xl font-extrabold text-black">
                 {p.cleanSheets ?? 0}
               </p>
+              <p className="text-xs text-gray-600 mt-1">+1 pt each</p>
             </div>
           </div>
         )}
+
+        <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
+          <div className="flex justify-between mb-4">
+            <span className="font-bold text-black">PLAYER OF THE WEEK</span>
+            <Star className="text-black" />
+          </div>
+          <div className="text-center">
+            <p className="text-3xl sm:text-4xl font-extrabold text-black">
+              {p.playerOfTheWeek ?? 0}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">⭐ +4 pts each</p>
+          </div>
+        </div>
 
         <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
           <div className="flex justify-between mb-4">

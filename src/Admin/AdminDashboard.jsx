@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Pen, Trash } from "lucide-react";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
+import { getDebt, getPoints as getPlayerPoints, isCleanSheetEligible, MATCH_COST  } from "../../utils/scoring";
 
-const MATCH_COST = 200;
 
-const getDebt = (p) => (p.played ?? 0) * MATCH_COST - (p.paid ?? 0);
 
 export default function Admin() {
   const {
@@ -17,6 +16,7 @@ export default function Admin() {
     totalMatches,
     updateTotalMatches,
   } = usePlayers();
+  const getPoints = (p) => getPlayerPoints(p, totalMatches);
   const [active, setActive] = useState("view");
   const [selected, setSelected] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,23 +25,6 @@ export default function Admin() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingAlert, setPendingAlert] = useState(null);
   const navigate = useNavigate();
-
-  const getPoints = (p) => {
-    const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
-    const debt = getDebt(p);
-    const zeroDebtBonus = debt <= 0 ? 2 : 0;
-    const cleanSheetBonus =
-      p.position === "Goalkeeper" ? (p.cleanSheets ?? 0) * 2 : 0;
-    return (
-      p.goals * 3 +
-      p.assists * 2 +
-      attendance -
-      (p.yellowCards ?? 0) * 1 -
-      (p.redCards ?? 0) * 3 +
-      zeroDebtBonus +
-      cleanSheetBonus
-    );
-  };
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
 
@@ -281,7 +264,7 @@ export default function Admin() {
         {/* PLAYER TABLE */}
         {active === "view" && (
           <div className="overflow-x-auto">
-            <table className="min-w-[1100px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
+            <table className="min-w-[1150px] w-full bg-gradient-to-r from-blue-400 to-blue-300 rounded shadow-xl mt-6">
               <thead>
                 <tr>
                   <th className="p-2 text-black font-bold">NO</th>
@@ -293,6 +276,7 @@ export default function Admin() {
                   <th className="p-2 text-black font-bold">🟨</th>
                   <th className="p-2 text-black font-bold">🟥</th>
                   <th className="p-2 text-black font-bold">🧤 CS</th>
+                  <th className="p-2 text-black font-bold">⭐ POTW</th>
                   <th className="p-2 text-black font-bold">🎁 BONUS</th>
                   <th className="p-2 text-black font-bold">OWED</th>
                   <th className="p-2 text-black font-bold">PAID</th>
@@ -311,7 +295,7 @@ export default function Admin() {
                   const owed = (p.played ?? 0) * MATCH_COST;
                   const paid = p.paid ?? 0;
                   const balance = paid - owed;
-                  const isGK = p.position === "Goalkeeper";
+                  const csEligible = isCleanSheetEligible(p);
 
                   return (
                     <tr
@@ -339,7 +323,7 @@ export default function Admin() {
                       </td>
                       <td className="p-2 text-black font-bold">
                         {p.name}
-                        {isGK && (
+                        {p.position === "Goalkeeper" && (
                           <span className="ml-1 text-xs bg-blue-700 text-white px-1.5 py-0.5 rounded-full">
                             GK
                           </span>
@@ -357,7 +341,10 @@ export default function Admin() {
                         {p.redCards ?? 0}
                       </td>
                       <td className="p-2 text-black font-bold">
-                        {isGK ? (p.cleanSheets ?? 0) : "—"}
+                        {csEligible ? (p.cleanSheets ?? 0) : "—"}
+                      </td>
+                      <td className="p-2 text-black font-bold">
+                        {p.playerOfTheWeek ?? 0}
                       </td>
                       <td className="p-2 text-black font-bold">
                         {zeroDebtBonus > 0 ? "+2" : "-"}
@@ -564,7 +551,7 @@ export default function Admin() {
             {sorted.map((p, i) => {
               const points = Math.round(getPoints(p));
               const debt = getDebt(p);
-              const isGK = p.position === "Goalkeeper";
+              const csEligible = isCleanSheetEligible(p);
               return (
                 <div
                   key={p._id}
@@ -608,9 +595,14 @@ export default function Admin() {
                       🟥 -{(p.redCards ?? 0) * 3}
                     </span>
                   )}
-                  {isGK && (p.cleanSheets ?? 0) > 0 && (
+                  {csEligible && (p.cleanSheets ?? 0) > 0 && (
                     <span className="text-xs bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                      🧤 +{(p.cleanSheets ?? 0) * 2}
+                      🧤 +{(p.cleanSheets ?? 0) * 1}
+                    </span>
+                  )}
+                  {(p.playerOfTheWeek ?? 0) > 0 && (
+                    <span className="text-xs bg-yellow-200 text-yellow-800 font-bold px-2 py-0.5 rounded-full">
+                      ⭐ +{(p.playerOfTheWeek ?? 0) * 4}
                     </span>
                   )}
                   <span className="font-bold">{points} pts</span>
@@ -763,7 +755,10 @@ function ConfigPanel({ totalMatches, updateTotalMatches }) {
           🎁 Zero / Cleared Debt = <strong>+2 pts</strong>
         </p>
         <p>
-          🧤 Clean Sheet (GK only) = <strong>+2 pts each</strong>
+          🧤 Clean Sheet (GK & Defenders) = <strong>+1 pt each</strong>
+        </p>
+        <p>
+          ⭐ Player of the Week = <strong>+4 pts each</strong>
         </p>
         <p>
           🟨 Yellow Card = <strong>-1 pt each</strong>
@@ -816,6 +811,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
           formData.append("redCards", 0);
           formData.append("paid", 0);
           formData.append("cleanSheets", 0);
+          formData.append("playerOfTheWeek", 0);
           return fetch(`${API_URL}/api/players/${p._id}`, {
             method: "PUT",
             headers: {
@@ -858,6 +854,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
               <li>🟨 Yellow Cards → 0</li>
               <li>🟥 Red Cards → 0</li>
               <li>🧤 Clean Sheets → 0</li>
+              <li>⭐ Player of the Week → 0</li>
               <li>💰 Paid → 0 TL</li>
             </ul>
             <p className="text-sm font-bold text-red-700 mb-4">
@@ -911,7 +908,7 @@ function ResetSeasonCard({ players, updatePlayer }) {
         <h2 className="font-bold text-black text-lg mb-4">🔄 New Season</h2>
         <p className="text-black text-sm mb-4">
           Reset every player's goals, assists, attendance, cards, clean sheets,
-          and payments back to zero.
+          player of the week awards, and payments back to zero.
         </p>
         <div className="bg-white/30 rounded-lg p-3 text-sm text-black mb-4 space-y-1">
           <p>
@@ -1070,6 +1067,7 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
     redCards: player.redCards ?? 0,
     paid: player.paid ?? 0,
     cleanSheets: player.cleanSheets ?? 0,
+    playerOfTheWeek: player.playerOfTheWeek ?? 0,
     position: player.position ?? "",
   });
 
@@ -1078,7 +1076,7 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  const isGK = form.position === "Goalkeeper";
+  const cleanSheetEligible = isCleanSheetEligible(form);
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value === "" ? "" : value }));
@@ -1117,6 +1115,7 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
       formData.append("redCards", Number(form.redCards) || 0);
       formData.append("paid", Number(form.paid) || 0);
       formData.append("cleanSheets", Number(form.cleanSheets) || 0);
+      formData.append("playerOfTheWeek", Number(form.playerOfTheWeek) || 0);
       formData.append("position", form.position || "");
       if (image) formData.append("avatar", image);
 
@@ -1231,14 +1230,21 @@ function EditModal({ player, updatePlayer, onClose, totalMatches }) {
           />
         ))}
 
-        {isGK && (
+        {cleanSheetEligible && (
           <StepperField
-            label="🧤 Clean Sheets (+2 pts each)"
+            label="🧤 Clean Sheets (+1 pt each)"
             value={form.cleanSheets}
             onChange={(val) => handleChange("cleanSheets", val)}
             min={0}
           />
         )}
+
+        <StepperField
+          label="⭐ Player of the Week (+4 pts each)"
+          value={form.playerOfTheWeek}
+          onChange={(val) => handleChange("playerOfTheWeek", val)}
+          min={0}
+        />
 
         <div className="bg-white/40 rounded-lg p-3 mb-3 space-y-2">
           <div className="flex justify-between text-sm font-semibold">
