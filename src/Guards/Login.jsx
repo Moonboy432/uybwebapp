@@ -33,9 +33,9 @@ export default function Login() {
       localStorage.setItem("token", data.token);
 
       if (data.role === "admin") {
-        navigate("/admin");
+        navigate("/admin", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       setError(err.message);
