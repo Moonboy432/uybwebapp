@@ -80,10 +80,11 @@ export default function PlayerDashboard() {
   const getPoints = (p) => getPlayerPoints(p, totalMatches);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showGoalsLeaderboard, setShowGoalsLeaderboard] = useState(false);
-  const [showAssistsLeaderboard, setShowAssistsLeaderboard] = useState(false);
-  const [showEntryList, setShowEntryList] = useState(false);
+
+  // ── Option B: single "view" state instead of 4 separate booleans ──────────
+  // "dashboard" | "league" | "goals" | "assists" | "entrylist"
+  const [view, setView] = useState("dashboard");
+
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -98,8 +99,6 @@ export default function PlayerDashboard() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState(null);
   const avatarInputRef = useRef(null);
-
-  
 
   const sorted = [...players].sort((a, b) => getPoints(b) - getPoints(a));
   const sortedByGoals = [...players].sort(
@@ -149,6 +148,52 @@ export default function PlayerDashboard() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // ── Option B: history sync ──────────────────────────────────────────────
+  // Seed a base history entry on first mount so popstate always has
+  // something sane to fall back to.
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.view) {
+      window.history.replaceState({ view: "dashboard" }, "");
+    }
+  }, []);
+
+  // Listen for back button / gesture and restore whatever state was pushed.
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const state = event.state || {};
+      setView(state.view || "dashboard");
+      if (state.profileId) {
+        const p = players.find((pl) => pl._id === state.profileId);
+        setViewingPlayer(p || null);
+        setProfileSource(state.profileSource || null);
+      } else {
+        setViewingPlayer(null);
+        setProfileSource(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [players]);
+
+  // Call these instead of setShowX(true) / setViewingPlayer(p) directly —
+  // they push a history entry so back button/gesture can unwind correctly.
+  const openView = (nextView) => {
+    setView(nextView);
+    setViewingPlayer(null);
+    setProfileSource(null);
+    window.history.pushState({ view: nextView }, "");
+  };
+
+  const openProfile = (p, source) => {
+    setProfileSource(source);
+    setViewingPlayer(p);
+    window.history.pushState(
+      { view, profileId: p._id, profileSource: source },
+      "",
+    );
+  };
 
   // ── Avatar editing helpers ──────────────────────────────────────────────────
 
@@ -610,12 +655,11 @@ export default function PlayerDashboard() {
     const isMe = vp._id === player?._id;
     const rank = sorted.findIndex((p) => p._id === vp._id) + 1;
 
+    // Option B: just go back through history — popstate restores the
+    // correct view (league/goals/assists/entrylist/dashboard) automatically,
+    // since it was captured in the pushed state when the profile was opened.
     const handleBack = () => {
-      setViewingPlayer(null);
-      if (profileSource === "leaderboard") setShowLeaderboard(true);
-      else if (profileSource === "goals") setShowGoalsLeaderboard(true);
-      else if (profileSource === "assists") setShowAssistsLeaderboard(true);
-      else if (profileSource === "entrylist") setShowEntryList(true);
+      window.history.back();
     };
 
     return (
@@ -730,7 +774,7 @@ export default function PlayerDashboard() {
       <ProfileOverlay />
 
       {/* Full Page League Leaderboard Overlay */}
-      {showLeaderboard && (
+      {view === "league" && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
@@ -753,11 +797,7 @@ export default function PlayerDashboard() {
                 return (
                   <button
                     key={p._id}
-                    onClick={() => {
-                      setProfileSource("leaderboard");
-                      setViewingPlayer(p);
-                      setShowLeaderboard(false);
-                    }}
+                    onClick={() => openProfile(p, "leaderboard")}
                     className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl w-full text-left transition-transform active:scale-95
                       ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
                   >
@@ -790,7 +830,7 @@ export default function PlayerDashboard() {
 
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => setShowLeaderboard(false)}
+                onClick={() => window.history.back()}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -801,7 +841,7 @@ export default function PlayerDashboard() {
       )}
 
       {/* Full Page Goals Leaderboard Overlay */}
-      {showGoalsLeaderboard && (
+      {view === "goals" && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
@@ -827,17 +867,13 @@ export default function PlayerDashboard() {
                   i={i}
                   statValue={p.goals ?? 0}
                   statLabel="goals"
-                  onSelect={(p) => {
-                    setProfileSource("goals");
-                    setViewingPlayer(p);
-                    setShowGoalsLeaderboard(false);
-                  }}
+                  onSelect={(p) => openProfile(p, "goals")}
                 />
               ))}
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => setShowGoalsLeaderboard(false)}
+                onClick={() => window.history.back()}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -848,7 +884,7 @@ export default function PlayerDashboard() {
       )}
 
       {/* Full Page Assists Leaderboard Overlay */}
-      {showAssistsLeaderboard && (
+      {view === "assists" && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
@@ -874,17 +910,13 @@ export default function PlayerDashboard() {
                   i={i}
                   statValue={p.assists ?? 0}
                   statLabel="assists"
-                  onSelect={(p) => {
-                    setProfileSource("assists");
-                    setViewingPlayer(p);
-                    setShowAssistsLeaderboard(false);
-                  }}
+                  onSelect={(p) => openProfile(p, "assists")}
                 />
               ))}
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => setShowAssistsLeaderboard(false)}
+                onClick={() => window.history.back()}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -895,7 +927,7 @@ export default function PlayerDashboard() {
       )}
 
       {/* Full Page Entry List Overlay */}
-      {showEntryList && (
+      {view === "entrylist" && (
         <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 overflow-y-auto">
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-center gap-3 mb-1">
@@ -923,11 +955,7 @@ export default function PlayerDashboard() {
                   return (
                     <button
                       key={p._id}
-                      onClick={() => {
-                        setProfileSource("entrylist");
-                        setViewingPlayer(p);
-                        setShowEntryList(false);
-                      }}
+                      onClick={() => openProfile(p, "entrylist")}
                       className={`flex items-center gap-3 p-4 rounded-2xl shadow-xl w-full text-left transition-transform active:scale-95
                         ${isMe ? "bg-yellow-400" : "bg-blue-200"}`}
                     >
@@ -955,7 +983,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => setShowEntryList(false)}
+                onClick={() => window.history.back()}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Entry List
@@ -995,7 +1023,7 @@ export default function PlayerDashboard() {
         <nav className="space-y-4 flex-1 mt-4">
           <button
             onClick={() => {
-              setShowLeaderboard(true);
+              openView("league");
               setSidebarOpen(false);
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
@@ -1004,7 +1032,7 @@ export default function PlayerDashboard() {
           </button>
           <button
             onClick={() => {
-              setShowGoalsLeaderboard(true);
+              openView("goals");
               setSidebarOpen(false);
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
@@ -1013,7 +1041,7 @@ export default function PlayerDashboard() {
           </button>
           <button
             onClick={() => {
-              setShowAssistsLeaderboard(true);
+              openView("assists");
               setSidebarOpen(false);
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
@@ -1022,7 +1050,7 @@ export default function PlayerDashboard() {
           </button>
           <button
             onClick={() => {
-              setShowEntryList(true);
+              openView("entrylist");
               setSidebarOpen(false);
             }}
             className="flex items-center gap-3 w-full text-left hover:bg-gray-100 p-2 rounded-xl"
@@ -1064,10 +1092,7 @@ export default function PlayerDashboard() {
             <div
               className="cursor-pointer"
               onClick={() => {
-                if (player) {
-                  setProfileSource("dashboard");
-                  setViewingPlayer(player);
-                }
+                if (player) openProfile(player, "dashboard");
               }}
               title="View your profile"
             >
@@ -1131,10 +1156,7 @@ export default function PlayerDashboard() {
                 return (
                   <button
                     key={p._id}
-                    onClick={() => {
-                      setProfileSource("dashboard");
-                      setViewingPlayer(p);
-                    }}
+                    onClick={() => openProfile(p, "dashboard")}
                     className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg w-full text-left transition-colors
                       ${isMe ? "bg-yellow-300 text-black" : "text-black hover:bg-blue-300"}`}
                   >
