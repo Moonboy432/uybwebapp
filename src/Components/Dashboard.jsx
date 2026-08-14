@@ -81,7 +81,6 @@ export default function PlayerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
 
-  // ── Option B: single "view" state instead of 4 separate booleans ──────────
   // "dashboard" | "league" | "goals" | "assists" | "entrylist"
   const [view, setView] = useState("dashboard");
 
@@ -149,50 +148,25 @@ export default function PlayerDashboard() {
     window.scrollTo(0, 0);
   }, []);
 
-  // ── Option B: history sync ──────────────────────────────────────────────
-  // Seed a base history entry on first mount so popstate always has
-  // something sane to fall back to.
-  useEffect(() => {
-    if (!window.history.state || !window.history.state.view) {
-      window.history.replaceState({ view: "dashboard" }, "");
-    }
-  }, []);
-
-  // Listen for back button / gesture and restore whatever state was pushed.
-  useEffect(() => {
-    const handlePopState = (event) => {
-      const state = event.state || {};
-      setView(state.view || "dashboard");
-      if (state.profileId) {
-        const p = players.find((pl) => pl._id === state.profileId);
-        setViewingPlayer(p || null);
-        setProfileSource(state.profileSource || null);
-      } else {
-        setViewingPlayer(null);
-        setProfileSource(null);
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [players]);
-
-  // Call these instead of setShowX(true) / setViewingPlayer(p) directly —
-  // they push a history entry so back button/gesture can unwind correctly.
+  // ── Navigation ─────────────────────────────────────────────────────────
+  // Plain React state, no browser History API involved. Mixing raw
+  // window.history.pushState/back() with React Router (which also owns
+  // window.history) caused the "Close" buttons to silently do nothing and
+  // caused stale overlays to stack on top of one another.
   const openView = (nextView) => {
     setView(nextView);
     setViewingPlayer(null);
     setProfileSource(null);
-    window.history.pushState({ view: nextView }, "");
   };
 
   const openProfile = (p, source) => {
     setProfileSource(source);
     setViewingPlayer(p);
-    window.history.pushState(
-      { view, profileId: p._id, profileSource: source },
-      "",
-    );
+  };
+
+  const closeProfile = () => {
+    setViewingPlayer(null);
+    setProfileSource(null);
   };
 
   // ── Avatar editing helpers ──────────────────────────────────────────────────
@@ -655,19 +629,14 @@ export default function PlayerDashboard() {
     const isMe = vp._id === player?._id;
     const rank = sorted.findIndex((p) => p._id === vp._id) + 1;
 
-    // Option B: just go back through history — popstate restores the
-    // correct view (league/goals/assists/entrylist/dashboard) automatically,
-    // since it was captured in the pushed state when the profile was opened.
-    const handleBack = () => {
-      window.history.back();
-    };
-
     return (
-      <div className="fixed inset-0 z-50 bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col overflow-y-auto">
+      // z-[55]: must render above the league/goals/assists/entrylist list
+      // overlays (z-50) since the underlying "view" stays mounted behind it.
+      <div className="fixed inset-0 z-[55] bg-gradient-to-r from-blue-400 to-blue-300 flex flex-col overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <button
-              onClick={handleBack}
+              onClick={closeProfile}
               className="flex items-center gap-2 bg-white/30 hover:bg-white/50 text-black font-bold px-4 py-2 rounded-xl transition-all"
             >
               <ArrowLeft size={18} /> Back
@@ -830,7 +799,7 @@ export default function PlayerDashboard() {
 
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => window.history.back()}
+                onClick={() => openView("dashboard")}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -873,7 +842,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => window.history.back()}
+                onClick={() => openView("dashboard")}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -916,7 +885,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => window.history.back()}
+                onClick={() => openView("dashboard")}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -983,7 +952,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => window.history.back()}
+                onClick={() => openView("dashboard")}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Entry List
