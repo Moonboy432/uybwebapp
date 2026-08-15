@@ -18,7 +18,7 @@ import {
   Loader2,
   Star,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
 import {
@@ -81,13 +81,25 @@ export default function PlayerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [player, setPlayer] = useState(null);
 
+  // Navigation is driven entirely by React Router's history (via
+  // useNavigate/useLocation) rather than raw window.history calls. That
+  // keeps our overlay "steps" as real router-owned history entries, so the
+  // hardware/browser back button pops through League → Dashboard, Profile →
+  // League, etc. one step at a time instead of leaving the app entirely.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const navState = location.state || {};
   // "dashboard" | "league" | "goals" | "assists" | "entrylist"
-  const [view, setView] = useState("dashboard");
+  const view = navState.view || "dashboard";
+  const profileSource = navState.profileId
+    ? navState.profileSource || null
+    : null;
+  const viewingPlayer = navState.profileId
+    ? players.find((p) => p._id === navState.profileId) || null
+    : null;
 
-  const [viewingPlayer, setViewingPlayer] = useState(null);
   const [prevRankings, setPrevRankings] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [profileSource, setProfileSource] = useState(null);
   const [avatarZoom, setAvatarZoom] = useState(null);
   const tooltipRef = useRef(null);
 
@@ -149,24 +161,26 @@ export default function PlayerDashboard() {
   }, []);
 
   // ── Navigation ─────────────────────────────────────────────────────────
-  // Plain React state, no browser History API involved. Mixing raw
-  // window.history.pushState/back() with React Router (which also owns
-  // window.history) caused the "Close" buttons to silently do nothing and
-  // caused stale overlays to stack on top of one another.
+  // Each of these pushes a real react-router history entry, so the actual
+  // browser/hardware back button steps back through Profile → List →
+  // Dashboard one level at a time (rather than exiting straight to
+  // whatever page preceded /dashboard). The in-app Close/Back buttons use
+  // navigate(-1) too — since they're only ever exactly one level deep
+  // (Close is only reachable when a list is topmost; Back is only
+  // reachable when a profile is topmost), this always lands in the right
+  // place and mirrors the hardware back button exactly.
   const openView = (nextView) => {
-    setView(nextView);
-    setViewingPlayer(null);
-    setProfileSource(null);
+    navigate(location.pathname, { state: { view: nextView } });
   };
 
   const openProfile = (p, source) => {
-    setProfileSource(source);
-    setViewingPlayer(p);
+    navigate(location.pathname, {
+      state: { view, profileId: p._id, profileSource: source },
+    });
   };
 
   const closeProfile = () => {
-    setViewingPlayer(null);
-    setProfileSource(null);
+    navigate(-1);
   };
 
   // ── Avatar editing helpers ──────────────────────────────────────────────────
@@ -799,7 +813,7 @@ export default function PlayerDashboard() {
 
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => openView("dashboard")}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -842,7 +856,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => openView("dashboard")}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -885,7 +899,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => openView("dashboard")}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Leaderboard
@@ -952,7 +966,7 @@ export default function PlayerDashboard() {
             </div>
             <div className="flex justify-center mt-6 pb-6">
               <button
-                onClick={() => openView("dashboard")}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transition-all"
               >
                 <X size={18} /> Close Entry List
