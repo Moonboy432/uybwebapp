@@ -6,6 +6,10 @@ export const isCleanSheetEligible = (p) =>
   p.position === "Goalkeeper" || p.position === "Defender";
 
 export const getPoints = (p, totalMatches) => {
+  const played = p.played ?? 0;
+  const goals = p.goals ?? 0;
+  const assists = p.assists ?? 0;
+
   const attendance = totalMatches > 0 ? (p.played / totalMatches) * 100 : 0;
   const debt = getDebt(p);
   const zeroDebtBonus = debt <= 0 ? 2 : 0;
@@ -14,8 +18,8 @@ export const getPoints = (p, totalMatches) => {
     : 0;
   const playerOfTheWeekBonus = (p.playerOfTheWeek ?? 0) * 4;
   return (
-    p.goals * 3 +
-    p.assists * 2 +
+    goals * 3 +
+    assists * 2 +
     attendance -
     (p.yellowCards ?? 0) * 1 -
     (p.redCards ?? 0) * 3 +
