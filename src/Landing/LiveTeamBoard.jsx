@@ -216,8 +216,6 @@ function LiveTeamBoard() {
               >
                 <header className="live-team-card-header">
                   <div>
-                    <span className="team-label">UYBFC TEAM</span>
-
                     <h2>{team.name}</h2>
                   </div>
 

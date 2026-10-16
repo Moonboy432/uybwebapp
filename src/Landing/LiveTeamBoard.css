@@ -114,18 +114,22 @@
 
 .team-green {
   border-top-color: #16a34a;
+  background: #F5fff5;
 }
 
 .team-blue {
   border-top-color: #2563eb;
+  background: #F0F8FF;
 }
 
 .team-yellow {
   border-top-color: #eab308;
+  background: #FFFDE7;
 }
 
 .team-red {
   border-top-color: #dc2626;
+  background: #FFF5F5;
 }
 
 .live-team-card-header {
