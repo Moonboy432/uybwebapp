@@ -145,8 +145,7 @@ export default function Navbar() {
             Rules
           </Link>
 
-          {/* Show only when a game day is active */}
-          {hasActiveGameDay && (
+         
             <Link
               to="/today-teams"
               className="block text-white font-semibold py-2 hover:bg-blue-500 rounded"
@@ -154,7 +153,7 @@ export default function Navbar() {
             >
               Today's Teams
             </Link>
-          )}
+         
 
           <Link
             to="/login"
