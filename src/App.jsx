@@ -11,6 +11,7 @@ import AdminDashboard from "./Admin/AdminDashboard";
 import { PlayerProvider } from "./context/PlayerContext";
 import ForgotPassword from "./Guards/ForgotPassword";
 import Rules from "./Landing/Rules";
+import LiveTeamBoard from "./Landing/LiveTeamBoard";
 
 function App() {
   const isLoggedIn = !!localStorage.getItem("player");
@@ -26,6 +27,7 @@ function App() {
         <Route path="/squad" element={<Squad />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/rules" element={<Rules />} />
+        <Route path="/today-teams" element={<LiveTeamBoard />} />
         <Route
           path="/dashboard"
           element={

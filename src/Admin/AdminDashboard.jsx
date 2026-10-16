@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Pen, Trash } from "lucide-react";
 import { usePlayers } from "../context/PlayerContext";
 import API_URL from "../config";
-import { getDebt, getPoints as getPlayerPoints, isCleanSheetEligible, MATCH_COST  } from "../../utils/scoring";
+import { getDebt, getPoints as getPlayerPoints, isCleanSheetEligible, MATCH_COST } from "../../utils/scoring";
+import GameDayManagement from "./GameDayManagement";
 
 
 
@@ -206,27 +207,29 @@ export default function Admin() {
         </div>
 
         <nav className="flex-1 p-3 space-y-2">
-          {["view", "add", "approvals", "leaderboard", "config"].map((item) => (
-            <button
-              key={item}
-              onClick={() => {
-                setActive(item);
-                setSidebarOpen(false);
-              }}
-              className={`w-full px-3 py-2 rounded flex items-center justify-between ${
-                active === item
-                  ? "bg-yellow-400 text-black font-bold"
-                  : "bg-blue-700 text-black font-bold"
-              }`}
-            >
-              <span>{item.toUpperCase()}</span>
-              {item === "approvals" && pendingUsers.length > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingUsers.length}
-                </span>
-              )}
-            </button>
-          ))}
+          {["view", "add", "approvals", "leaderboard", "gate", "config"].map(
+            (item) => (
+              <button
+                key={item}
+                onClick={() => {
+                  setActive(item);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full px-3 py-2 rounded flex items-center justify-between ${
+                  active === item
+                    ? "bg-yellow-400 text-black font-bold"
+                    : "bg-blue-700 text-black font-bold"
+                }`}
+              >
+                <span>{item.toUpperCase()}</span>
+                {item === "approvals" && pendingUsers.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {pendingUsers.length}
+                  </span>
+                )}
+              </button>
+            ),
+          )}
         </nav>
 
         <div className="mt-auto p-3">
@@ -252,7 +255,8 @@ export default function Admin() {
         </button>
 
         {/* STATS — updated card labels/values */}
-        <div className="mx-auto grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+
+        <div className="mx-auto mb-6 grid w-full grid-cols-1 gap-3 px-2 sm:grid-cols-2 md:grid-cols-3">
           <Card
             label="TOTAL POSITIVE BALANCE"
             value={`${totalPositiveBalance} TL`}
@@ -611,6 +615,9 @@ export default function Admin() {
             })}
           </div>
         )}
+
+        {/* GATE MANAGEMENT */}
+        {active === "gate" && <GameDayManagement />}
 
         {/* CONFIG */}
         {active === "config" && (

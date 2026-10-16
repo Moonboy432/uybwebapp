@@ -1,0 +1,368 @@
+.live-board-page {
+  min-height: 100vh;
+  padding: 80px 18px 48px;
+  background: linear-gradient(to right, #60a5fa, #93c5fd);
+  color: #172033;
+}
+
+.live-board-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.live-board-header {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.live-board-eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.live-board-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.live-board-match-title {
+  margin: 12px 0 4px;
+  font-size: 1.2rem;
+  font-weight: 750;
+}
+
+.live-board-header > p {
+  margin: 8px 0;
+  color: #64748b;
+}
+
+.live-board-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.live-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.live-board-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.live-board-summary > div {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.summary-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.live-board-summary strong {
+  font-size: 1.8rem;
+  font-weight: 850;
+}
+
+.summary-total {
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.live-team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.live-team-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-top: 5px solid #94a3b8;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.team-green {
+  border-top-color: #16a34a;
+}
+
+.team-blue {
+  border-top-color: #2563eb;
+}
+
+.team-yellow {
+  border-top-color: #eab308;
+}
+
+.team-red {
+  border-top-color: #dc2626;
+}
+
+.live-team-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 14px;
+}
+
+.team-label {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.live-team-card h2 {
+  margin: 4px 0 0;
+  font-size: 1.5rem;
+  font-weight: 850;
+}
+
+.team-count {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.team-count strong {
+  font-size: 1.45rem;
+}
+
+.team-count span {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.team-capacity-track {
+  height: 6px;
+  margin: 0 20px 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.team-capacity-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #64748b;
+  transition: width 250ms ease;
+}
+
+.team-green .team-capacity-fill {
+  background: #16a34a;
+}
+
+.team-blue .team-capacity-fill {
+  background: #2563eb;
+}
+
+.team-yellow .team-capacity-fill {
+  background: #ca8a04;
+}
+
+.team-red .team-capacity-fill {
+  background: #dc2626;
+}
+
+.live-team-player-list {
+  margin: 0;
+  padding: 0 20px 16px;
+  list-style: none;
+}
+
+.live-team-player-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.live-team-player-list li:last-child {
+  border-bottom: none;
+}
+
+.player-number {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.live-player-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.live-player-details strong {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.live-player-details span {
+  color: #64748b;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.team-empty-message {
+  padding: 12px 20px 24px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.live-board-empty,
+.live-board-message {
+  padding: 32px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.live-board-empty h2 {
+  margin-top: 0;
+}
+
+.live-board-empty p {
+  margin-bottom: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.live-board-error,
+.live-board-warning {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff7f7;
+  color: #991b1b;
+  line-height: 1.5;
+}
+
+.live-board-error button {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #991b1b;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.live-board-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.live-board-footer p {
+  margin: 0;
+}
+
+.live-board-refresh {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #172033;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.live-board-refresh:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.live-board-refresh:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .live-board-page {
+    padding: 80px 12px 36px;
+  }
+
+  .live-board-summary {
+    gap: 10px;
+  }
+
+  .live-board-summary > div {
+    padding: 15px;
+  }
+
+  .live-board-summary strong {
+    font-size: 1.5rem;
+  }
+
+  .live-team-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .live-board-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .live-board-refresh {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-capacity-fill {
+    transition: none;
+  }
+}
