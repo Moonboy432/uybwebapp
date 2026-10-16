@@ -187,7 +187,7 @@ export default function Admin() {
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-64 bg-blue-300 z-50 
+        className={`fixed md:static top-0 left-0 min-h-full w-64 bg-blue-300 z-50 shadow-md p-6
     flex flex-col transform transition-transform duration-300 
     ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
     md:translate-x-0 md:sticky md:top-0 md:self-start`}
