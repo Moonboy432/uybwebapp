@@ -470,6 +470,24 @@ export default function PlayerDashboard() {
           </p>
         </div>
 
+        {isSelf && (
+          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
+            <div className="flex justify-between mb-2">
+              <span className="font-bold text-black">ACCOUNT</span>
+              <CreditCard className="text-black" />
+            </div>
+            <p
+              className={`text-xl font-extrabold ${debt <= 0 ? "text-blue-400" : "text-red-400"}`}
+            >
+              {debt <= 0
+                ? balance > 0
+                  ? `${balance} TL`
+                  : "0 TL"
+                : ` ${debt} TL DEBT`}
+            </p>
+          </div>
+        )}
+
         <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
           <div className="flex justify-between mb-4">
             <span className="font-bold text-black">GOALS & ASSISTS</span>
@@ -557,7 +575,7 @@ export default function PlayerDashboard() {
             <div className="w-px bg-black/20" />
             <div className="text-center">
               <p
-                className={`text-3xl sm:text-4xl font-extrabold ${debt <= 0 ? "text-green-600" : "text-gray-400"}`}
+                className={`text-3xl sm:text-4xl font-extrabold ${debt <= 0 ? "text-blue-400" : "text-gray-400"}`}
               >
                 {debt <= 0 ? "+2" : "0"}
               </p>
@@ -566,23 +584,7 @@ export default function PlayerDashboard() {
           </div>
         </div>
 
-        {isSelf && (
-          <div className="bg-blue-200 p-4 sm:p-6 rounded-2xl shadow-xl">
-            <div className="flex justify-between mb-2">
-              <span className="font-bold text-black">ACCOUNT</span>
-              <CreditCard className="text-black" />
-            </div>
-            <p
-              className={`text-3xl font-extrabold ${debt <= 0 ? "text-green-600" : "text-red-500"}`}
-            >
-              {debt <= 0
-                ? balance > 0
-                  ? `✓ +${balance} TL`
-                  : "✓ 0 TL"
-                : `- ${debt} TL DEBT`}
-            </p>
-          </div>
-        )}
+        
       </div>
     );
   };
